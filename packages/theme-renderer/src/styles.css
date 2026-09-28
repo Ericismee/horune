@@ -1,0 +1,59 @@
+.horune-clock {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+  width: 100%;
+  min-height: 170px;
+  display: grid;
+  place-items: center;
+  border-radius: var(--clock-radius);
+  color: var(--clock-fg);
+  border: var(--clock-frame-width) solid var(--clock-frame-color);
+  background: linear-gradient(var(--clock-gradient-angle), color-mix(in srgb, var(--clock-bg) calc(var(--clock-opacity) * 100%), transparent), color-mix(in srgb, var(--clock-bg-end) calc(var(--clock-opacity) * 100%), transparent));
+  box-shadow: 0 18px 45px color-mix(in srgb, var(--clock-bg) 35%, transparent);
+}
+
+.horune-clock__content { position: relative; z-index: 2; width: 100%; padding: 1.4rem 1.55rem; display: flex; flex-direction: column; align-items: flex-start; gap: var(--clock-gap); }
+.horune-clock__content[data-align="center"] { align-items: center; text-align: center; }
+.horune-clock__eyebrow, .horune-clock__end { font-family: var(--h-font-mono, monospace); font-size: clamp(0.72rem, 2vw, 0.86rem); font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; }
+.horune-clock__eyebrow { display: inline-flex; padding: 0.3rem 0.55rem; color: var(--clock-bg); background: var(--clock-accent); border-radius: 999px; }
+.horune-clock__face { display: flex; align-items: center; justify-content: inherit; gap: 20px; max-width: 100%; }
+.horune-clock__time { margin: 0; font-size: clamp(2.2rem, 10vw, var(--clock-font-size)); line-height: 0.95; letter-spacing: var(--clock-tracking); font-variant-numeric: tabular-nums; text-shadow: 0 0 calc(22px * var(--clock-intensity)) var(--clock-accent); }
+.horune-clock__time.font-mono { font-family: var(--h-font-mono, monospace); }
+.horune-clock__time.font-sans { font-family: var(--h-font-sans, sans-serif); }
+.horune-clock__end { color: color-mix(in srgb, var(--clock-fg) 76%, var(--clock-muted)); }
+.horune-clock__date { font: 700 0.78rem var(--h-font-mono, monospace); color: var(--clock-muted); text-transform: uppercase; }
+.horune-clock__words { max-width: 90%; font-size: clamp(1.7rem, 8vw, calc(var(--clock-font-size) * 0.72)); line-height: 1; text-wrap: balance; }
+.horune-clock__flip { display: flex; gap: 0.04em; }
+.horune-clock__flip > span { min-width: 0.62em; padding: 0.06em 0.04em; border-radius: 0.08em; background: color-mix(in srgb, var(--clock-fg) 10%, transparent); box-shadow: inset 0 -0.04em 0 color-mix(in srgb, var(--clock-bg) 45%, transparent); text-align: center; }
+.horune-clock__flip > span:nth-child(3n) { min-width: 0.3em; background: transparent; box-shadow: none; }
+.horune-clock__analog { position: relative; width: min(112px, 24vw); aspect-ratio: 1; flex: 0 0 auto; border: 3px solid currentColor; border-radius: 50%; background: radial-gradient(circle, var(--clock-accent) 0 4px, transparent 5px); }
+.horune-clock__analog::before, .horune-clock__analog::after { content: ""; position: absolute; inset: 9%; border-block: 2px solid color-mix(in srgb, var(--clock-fg) 55%, transparent); border-radius: 50%; }
+.horune-clock__analog::after { transform: rotate(90deg); }
+.horune-clock__analog i { position: absolute; left: 50%; bottom: 50%; width: 3px; border-radius: 3px; background: currentColor; transform-origin: 50% 100%; }
+.horune-clock__analog .hour { height: 28%; transform: translateX(-50%) rotate(var(--hour-angle)); }
+.horune-clock__analog .minute { height: 38%; transform: translateX(-50%) rotate(var(--minute-angle)); }
+.horune-clock__analog .second { width: 2px; height: 42%; background: var(--clock-accent); transform: translateX(-50%) rotate(var(--second-angle)); }
+.horune-clock__layers { position: absolute; inset: 0; z-index: 3; pointer-events: none; overflow: hidden; border-radius: inherit; }
+.horune-clock__layer { position: absolute; display: inline-block; max-width: 70%; padding: 0.12em 0.28em; white-space: nowrap; font: 800 1rem var(--h-font-sans, sans-serif); color: var(--clock-accent); transform-origin: center; user-select: none; pointer-events: auto; touch-action: none; cursor: grab; }
+.horune-clock__layer.layer-sticker, .horune-clock__layer.layer-icon { font-size: 1.6rem; }
+.horune-clock__layer.is-selected { outline: 2px dashed var(--clock-accent); outline-offset: 3px; }
+.horune-clock__layer.is-locked { cursor: not-allowed; }
+.horune-clock__effect { position: absolute; inset: -35%; z-index: 1; pointer-events: none; opacity: calc(var(--clock-intensity) * 0.75); }
+.effect-orbit .horune-clock__effect { border: 2px solid var(--clock-accent); border-radius: 50%; animation: h-orbit 12s linear infinite; }
+.effect-pulse .horune-clock__effect { background: radial-gradient(circle at 75% 30%, var(--clock-accent), transparent 38%); animation: h-pulse 4s ease-in-out infinite alternate; }
+.effect-scanline .horune-clock__effect, .effect-flip .horune-clock__effect { inset: 0; background: repeating-linear-gradient(0deg, transparent 0 7px, color-mix(in srgb, var(--clock-accent) 20%, transparent) 8px); }
+.effect-grain .horune-clock__effect { inset: 0; background-image: radial-gradient(var(--clock-muted) 0.7px, transparent 0.7px); background-size: 9px 9px; }
+.motion-static .horune-clock__effect { animation: none; }
+.motion-subtle .horune-clock__effect { animation-duration: 18s; }
+.quality-low .horune-clock__effect { animation: none; opacity: calc(var(--clock-intensity) * 0.35); }
+.shadow-none { box-shadow: none; }
+.shadow-hard { box-shadow: 8px 8px 0 color-mix(in srgb, var(--clock-fg) 80%, transparent); }
+.shadow-glow { box-shadow: 0 0 34px color-mix(in srgb, var(--clock-accent) 52%, transparent); }
+.horune-clock.is-compact { min-height: 132px; }
+.horune-clock.is-compact .horune-clock__time { font-size: clamp(2rem, 8vw, 3.6rem); }
+
+@keyframes h-orbit { to { transform: rotate(360deg); } }
+@keyframes h-pulse { from { transform: translate3d(-3%, 2%, 0) scale(0.85); } to { transform: translate3d(3%, -2%, 0) scale(1.08); } }
+
+@media (prefers-reduced-motion: reduce) { .horune-clock__effect { animation: none !important; } }

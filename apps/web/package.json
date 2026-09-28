@@ -1,0 +1,28 @@
+{
+  "name": "@horune/web",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "typecheck": "next typegen && tsc --noEmit",
+    "test": "vitest run --passWithNoTests --exclude e2e/**"
+  },
+  "dependencies": {
+    "@horune/design-system": "workspace:*",
+    "@horune/theme-renderer": "workspace:*",
+    "@horune/theme-schema": "workspace:*",
+    "@horune/theme-studio": "workspace:*",
+    "next": "^16.0.0",
+    "react": "^19.1.1",
+    "react-dom": "^19.1.1"
+  },
+  "devDependencies": {
+    "@types/node": "^24.5.2",
+    "@types/react": "^19.1.13",
+    "@types/react-dom": "^19.1.9",
+    "typescript": "^5.9.2",
+    "vitest": "^3.2.4"
+  }
+}

@@ -1,0 +1,14 @@
+{
+  "name": "@horune/theme-schema",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "exports": { ".": "./src/index.ts" },
+  "scripts": {
+    "build": "tsc --noEmit",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run"
+  },
+  "dependencies": { "zod": "^4.1.11" },
+  "devDependencies": { "typescript": "^5.9.2", "vitest": "^3.2.4" }
+}

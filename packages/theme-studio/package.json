@@ -1,0 +1,22 @@
+{
+  "name": "@horune/theme-studio",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "exports": { ".": "./src/index.tsx", "./styles.css": "./src/styles.css" },
+  "scripts": {
+    "build": "tsc --noEmit",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run"
+  },
+  "peerDependencies": { "react": "^19.0.0" },
+  "dependencies": {
+    "@horune/theme-renderer": "workspace:*",
+    "@horune/theme-schema": "workspace:*"
+  },
+  "devDependencies": {
+    "@types/react": "^19.1.13",
+    "typescript": "^5.9.2",
+    "vitest": "^3.2.4"
+  }
+}
