@@ -84,7 +84,18 @@ cd horune
 pnpm install
 ```
 
+Run every workspace command from the repository root (the directory containing the root `package.json`). On Windows, if pnpm or Cargo is installed but the current PowerShell cannot find it, refresh PATH for that session:
+
+```powershell
+$env:Path = "$(npm config get prefix);$env:USERPROFILE\.cargo\bin;$env:Path"
+pnpm --version
+cargo --version
+```
+
+If pnpm is not installed globally, use `npx pnpm@11.19.0 install`—there is no backslash before `@`. See [development.md](docs/development.md) for permanent PATH setup and troubleshooting.
+
 ```bash
+# Run these from the repository root
 # Next.js landing and browser Theme Studio
 pnpm dev:web
 
@@ -102,10 +113,13 @@ pnpm typecheck
 pnpm test
 pnpm test:e2e
 pnpm build
-pnpm tauri build
+
+# Native installer for the current platform
+pnpm tauri build --bundles nsis  # Windows
+pnpm tauri build --bundles dmg   # macOS
 ```
 
-The last command builds only for the current operating system and needs the native prerequisites listed in [development.md](docs/development.md).
+Native artifacts are written under `apps/desktop/src-tauri/target/release/bundle/`. Build only the bundle for the current operating system and install the native prerequisites listed in [development.md](docs/development.md).
 </details>
 
 ### Monorepo map

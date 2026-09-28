@@ -84,7 +84,18 @@ cd horune
 pnpm install
 ```
 
+Chạy mọi lệnh workspace tại thư mục gốc repository (nơi có `package.json` gốc). Trên Windows, nếu đã cài pnpm hoặc Cargo nhưng PowerShell hiện tại chưa tìm thấy, cập nhật PATH cho phiên đó:
+
+```powershell
+$env:Path = "$(npm config get prefix);$env:USERPROFILE\.cargo\bin;$env:Path"
+pnpm --version
+cargo --version
+```
+
+Nếu chưa cài pnpm global, dùng `npx pnpm@11.19.0 install`—không có dấu gạch chéo ngược trước `@`. Xem [development.md](docs/development.md) để thiết lập PATH vĩnh viễn và xử lý lỗi.
+
 ```bash
+# Chạy các lệnh này tại thư mục gốc repository
 # Landing Next.js và Theme Studio trên trình duyệt
 pnpm dev:web
 
@@ -102,10 +113,13 @@ pnpm typecheck
 pnpm test
 pnpm test:e2e
 pnpm build
-pnpm tauri build
+
+# Installer native cho nền tảng hiện tại
+pnpm tauri build --bundles nsis  # Windows
+pnpm tauri build --bundles dmg   # macOS
 ```
 
-Lệnh cuối chỉ build cho hệ điều hành hiện tại và cần các prerequisite native trong [development.md](docs/development.md).
+Artifact native nằm trong `apps/desktop/src-tauri/target/release/bundle/`. Chỉ build bundle tương ứng với hệ điều hành hiện tại và cài các prerequisite trong [development.md](docs/development.md).
 </details>
 
 ### Cấu trúc monorepo
