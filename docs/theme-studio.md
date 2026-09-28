@@ -29,9 +29,14 @@ The current icon/sticker content is built into the editor. There is no external 
 - Canvas zoom from 60% to 140%.
 - Grid visibility and drag snapping.
 - Undo/redo with the most recent 50 editing states.
+- Duplicate and delete through visible controls or scoped keyboard commands.
+- Pixel nudge with arrow keys (10 px with Shift), zoom shortcuts, deselect, and add-text shortcuts.
+- A searchable Command Palette (`Ctrl/Cmd + K`) containing only implemented actions.
 - Device-local draft save and restore through versioned local-storage keys.
 - Reset to the source theme.
 - Strict JSON export and import with a 256 KiB input limit.
+
+Shortcuts do not fire while the user is editing an input, select, textarea, or editable text region. Every essential command also has a visible control. See the [feature matrix](theme-studio-feature-matrix.md) for the complete current/next/later boundary.
 
 Drafts are local to an origin/application today; web-to-desktop sync is planned with accounts.
 
@@ -88,7 +93,7 @@ Minimal Studio excerpt (a complete manifest also includes palette, typography, l
 - PNG and WebP import after header decoding, dimension/byte checks, metadata stripping, license capture, and safe re-encoding.
 - Animated GIF import with decoded dimensions, frame count, duration, FPS, byte, and memory budgets; static fallback generation.
 - Safe SVG subset with XML parsing, element/attribute allowlists, reference flattening, and raster fallback. Scripts, events, external references, filters with unbounded cost, and embedded HTML remain forbidden.
-- Resize handles, multi-select, grouping/ungrouping, alignment/distribution, guides, keyboard nudging, and layer duplication.
+- Resize handles, multi-select, grouping/ungrouping, alignment/distribution, guides, rulers, and smart guides.
 - Autosave versions, named recovery points, theme duplication, and asset-aware portable export bundles.
 - Battery/low-power detection, automatic `quality="low"`, and measurable theme performance warnings.
 - Validated asset preview shared with the backend ingestion pipeline.

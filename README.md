@@ -34,7 +34,8 @@ Horune is preview software. There is no downloadable release yet, real system ac
 | macOS native build                            | **Verified in CI / hardware unverified** | Rust tests and the DMG bundle pass; no physical Mac action test yet                    |
 | Linux                                         | **Planned**                    | Reminder-only capability placeholder; no release target                                         |
 | Bilingual landing (`/vi`, `/en`)              | **Available in source**        | Statically generated and tested at desktop, tablet, and mobile sizes                            |
-| Theme Studio core                             | **Available in source**        | Shared web/desktop editor, renderer, draft storage, undo/redo, and validated JSON import/export |
+| Theme Studio core                             | **Available in source**        | Shared web/desktop editor, renderer, draft storage, undo/redo, scoped shortcuts, Command Palette, and validated JSON import/export |
+| Shared Horune Account                        | **Planned / provider ADR proposed** | No active sign-in form; OIDC provider must pass the desktop PKCE and session proof gate |
 | External image/GIF/SVG import                 | **Planned next**               | Limits and security policy are documented; no UI button claims support today                    |
 | Accounts, community, sharing, and remix       | **Planned**                    | Requires the shared API milestone                                                               |
 | Marketplace and payments                      | **Planned**                    | No payment or paid-entitlement logic exists in clients                                          |
@@ -63,7 +64,7 @@ The transparent native overlay is implemented, but no overlay screenshot is pres
 | Floating clock | Shared renderer, transparent always-on-top Tauri window, tray controls, five bundled themes |
 | Theme Studio | Digital, analog, flip, word, and hybrid faces; colors and gradients; size, opacity, effect, date/seconds/action toggles |
 | Layers | Add text or built-in stickers; select, drag, position, scale, rotate, hide, lock, reorder, and delete |
-| Editing workflow | Zoom, grid, snap, up to 50 undo states, redo, local draft save/restore, reset, strict Theme JSON import/export |
+| Editing workflow | Zoom, grid, snap, up to 50 undo states, redo, duplicate/delete/nudge shortcuts, searchable Command Palette, local draft save/restore, reset, strict Theme JSON import/export |
 | Motion and access | `static`, `subtle`, and `full`; reduced-motion support; visible focus; responsive web layout |
 
 See [Theme Studio](docs/theme-studio.md) for the exact current/next/long-term boundary.
@@ -161,12 +162,17 @@ Future accounts, community data, moderation, orders, and ownership will live beh
 
 - [Architecture](docs/architecture.md)
 - [Theme Studio model](docs/theme-studio.md)
+- [Theme Studio feature matrix](docs/theme-studio-feature-matrix.md)
 - [Theme and asset security](docs/theme-security.md)
 - [Platform limitations](docs/platform-limitations.md)
+- [Ordered implementation plan](docs/implementation-plan.md)
+- [Identity provider ADR](docs/adr/0002-identity-provider.md)
+- [Authorization matrix](docs/authorization-matrix.md)
+- [Planned server data model](docs/data-model.md)
 
 ## Testing and performance
 
-The current verified baseline is six TypeScript workspace typechecks, 12 unit tests, a production build, and 18 Playwright tests across `1440×900`, `768×1024`, and `390×844`. Rust tests plus unsigned NSIS and DMG bundles passed on Windows/macOS in [CI run #3](https://github.com/Ericismee/horune/actions/runs/36442542223). Native checks remain blocked only on this local machine because host Application Control returns OS error 4551; real power actions and physical macOS behavior are still unverified.
+The current verified baseline is six TypeScript workspace typechecks, 12 unit tests, a production build, and 24 Playwright tests across `1440×900`, `768×1024`, and `390×844`. Rust tests plus unsigned NSIS and DMG bundles passed on Windows/macOS in [CI run #3](https://github.com/Ericismee/horune/actions/runs/36442542223). Native checks remain incomplete on this local machine because the current MSVC environment cannot locate `msvcrt.lib`; real power actions and physical macOS behavior are still unverified.
 
 Horune is designed to avoid per-schedule loops and hidden-window rendering, but the project does **not** call itself lightweight without native measurements. The 60-second CPU/RAM sampler and the empty, explicitly pending measurement matrix are documented.
 

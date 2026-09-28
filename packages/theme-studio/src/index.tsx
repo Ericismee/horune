@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useRef, useState, type ChangeEvent, type CSSProperties, type PointerEvent as ReactPointerEvent } from "react";
+import { useEffect, useMemo, useRef, useState, type ChangeEvent, type CSSProperties, type PointerEvent as ReactPointerEvent } from "react";
 import { ClockThemeRenderer, type ClockMotionMode } from "@horune/theme-renderer";
 import { createStudioTheme, parseThemeManifest, THEME_IMPORT_LIMITS, type ThemeLayerV1, type ThemeManifestV1 } from "@horune/theme-schema";
 import { parseThemeJson, serializeTheme, themeFileName } from "./io";
@@ -25,6 +25,10 @@ const COPY = {
     reset: "Đặt lại",
     addText: "+ Văn bản",
     addSticker: "+ Sticker",
+    commands: "Lệnh",
+    commandPlaceholder: "Tìm lệnh…",
+    noCommands: "Không có lệnh phù hợp.",
+    duplicate: "Nhân bản",
     noLayer: "Chọn một layer để chỉnh vị trí, tỷ lệ và nội dung.",
     currentSupport: "Hiện hỗ trợ Theme JSON ≤ 256 KiB. PNG/WebP/GIF/SVG an toàn: planned.",
     saved: "Đã lưu nháp trên thiết bị.",
@@ -45,6 +49,10 @@ const COPY = {
     reset: "Reset",
     addText: "+ Text",
     addSticker: "+ Sticker",
+    commands: "Commands",
+    commandPlaceholder: "Find a command…",
+    noCommands: "No matching commands.",
+    duplicate: "Duplicate",
     noLayer: "Select a layer to edit its position, scale, and content.",
     currentSupport: "Currently supports Theme JSON ≤ 256 KiB. Safe PNG/WebP/GIF/SVG: planned.",
     saved: "Draft saved on this device.",
@@ -72,7 +80,10 @@ export function ThemeStudio({ locale = "vi", initialTheme, storageKey = "horune.
   const [grid, setGrid] = useState(true);
   const [snap, setSnap] = useState(true);
   const [message, setMessage] = useState<string>("");
+  const [paletteOpen, setPaletteOpen] = useState(false);
+  const [commandQuery, setCommandQuery] = useState("");
   const dragRef = useRef<DragState | null>(null);
+  const paletteInputRef = useRef<HTMLInputElement | null>(null);
   const t = COPY[locale];
   const theme = history.present;
   const studio = theme.studio!;
@@ -115,6 +126,38 @@ export function ThemeStudio({ locale = "vi", initialTheme, storageKey = "horune.
     if (!active || !swap) return;
     [active.zIndex, swap.zIndex] = [swap.zIndex, active.zIndex];
   });
+
+  const deleteSelected = () => {
+    if (!selectedId) return;
+    commit((draft) => { draft.studio!.layers = draft.studio!.layers.filter((layer) => layer.id !== selectedId); });
+    setSelectedId(null);
+  };
+
+  const duplicateSelected = () => {
+    if (!selected || studio.layers.length >= THEME_IMPORT_LIMITS.layers) return;
+    const id = `layer-${crypto.randomUUID()}`;
+    commit((draft) => {
+      const sourceLayer = draft.studio!.layers.find((layer) => layer.id === selected.id);
+      if (!sourceLayer) return;
+      const highest = Math.max(0, ...draft.studio!.layers.map((layer) => layer.zIndex));
+      draft.studio!.layers.push({
+        ...sourceLayer,
+        id,
+        x: clamp(sourceLayer.x + studio.canvas.gridSize / studio.canvas.width, 0, 1),
+        y: clamp(sourceLayer.y + studio.canvas.gridSize / studio.canvas.height, 0, 1),
+        zIndex: highest + 1
+      });
+    });
+    setSelectedId(id);
+  };
+
+  const nudgeSelected = (xPixels: number, yPixels: number) => {
+    if (!selected || selected.locked) return;
+    updateLayer(selected.id, (layer) => {
+      layer.x = clamp(layer.x + xPixels / studio.canvas.width, 0, 1);
+      layer.y = clamp(layer.y + yPixels / studio.canvas.height, 0, 1);
+    });
+  };
 
   const startDrag = (layer: ThemeLayerV1, event: ReactPointerEvent<HTMLSpanElement>) => {
     if (layer.locked) return;
@@ -188,12 +231,76 @@ export function ThemeStudio({ locale = "vi", initialTheme, storageKey = "horune.
     } catch (error) { setMessage(`${t.invalid}: ${error instanceof Error ? error.message : "unknown error"}`); }
   };
 
+  const commands = [
+    { id: "save", label: t.save, shortcut: "Ctrl/Cmd + S", run: saveDraft },
+    { id: "undo", label: locale === "vi" ? "Hoàn tác" : "Undo", shortcut: "Ctrl/Cmd + Z", run: undo, disabled: !history.past.length },
+    { id: "redo", label: locale === "vi" ? "Làm lại" : "Redo", shortcut: "Ctrl/Cmd + Shift + Z", run: redo, disabled: !history.future.length },
+    { id: "text", label: t.addText, shortcut: "T", run: () => addLayer("text", locale === "vi" ? "Thời gian của bạn" : "Your time"), disabled: studio.layers.length >= THEME_IMPORT_LIMITS.layers },
+    { id: "duplicate", label: t.duplicate, shortcut: "Ctrl/Cmd + J", run: duplicateSelected, disabled: !selected || studio.layers.length >= THEME_IMPORT_LIMITS.layers },
+    { id: "delete", label: locale === "vi" ? "Xóa layer" : "Delete layer", shortcut: "Delete", run: deleteSelected, disabled: !selected },
+    { id: "deselect", label: locale === "vi" ? "Bỏ chọn" : "Deselect", shortcut: "Ctrl/Cmd + D", run: () => setSelectedId(null), disabled: !selected },
+    { id: "zoom-in", label: locale === "vi" ? "Phóng to" : "Zoom in", shortcut: "+", run: () => setZoom((current) => clamp(current + 10, 60, 140)), disabled: zoom >= 140 },
+    { id: "zoom-out", label: locale === "vi" ? "Thu nhỏ" : "Zoom out", shortcut: "−", run: () => setZoom((current) => clamp(current - 10, 60, 140)), disabled: zoom <= 60 },
+    { id: "zoom-fit", label: locale === "vi" ? "Vừa khung" : "Fit canvas", shortcut: "0", run: () => setZoom(100), disabled: zoom === 100 }
+  ];
+  const normalizedQuery = commandQuery.trim().toLocaleLowerCase(locale);
+  const filteredCommands = commands.filter((command) => command.label.toLocaleLowerCase(locale).includes(normalizedQuery));
+
+  useEffect(() => {
+    if (paletteOpen) paletteInputRef.current?.focus();
+  }, [paletteOpen]);
+
+  useEffect(() => {
+    const onKeyDown = (event: KeyboardEvent) => {
+      const target = event.target;
+      if (paletteOpen && event.key === "Escape") {
+        event.preventDefault();
+        setPaletteOpen(false);
+        return;
+      }
+      if (target instanceof HTMLElement && (target.isContentEditable || /^(INPUT|SELECT|TEXTAREA)$/.test(target.tagName))) return;
+      const modifier = event.ctrlKey || event.metaKey;
+      const key = event.key.toLowerCase();
+
+      if (modifier && key === "k") {
+        event.preventDefault();
+        setCommandQuery("");
+        setPaletteOpen(true);
+        return;
+      }
+      if (paletteOpen) {
+        return;
+      }
+      if (modifier && key === "s") { event.preventDefault(); saveDraft(); return; }
+      if (modifier && key === "z") { event.preventDefault(); event.shiftKey ? redo() : undo(); return; }
+      if (modifier && key === "j") { event.preventDefault(); duplicateSelected(); return; }
+      if (modifier && key === "d") { event.preventDefault(); setSelectedId(null); return; }
+      if (!modifier && key === "t") { event.preventDefault(); addLayer("text", locale === "vi" ? "Thời gian của bạn" : "Your time"); return; }
+      if (!modifier && (event.key === "+" || event.key === "=")) { event.preventDefault(); setZoom((current) => clamp(current + 10, 60, 140)); return; }
+      if (!modifier && event.key === "-") { event.preventDefault(); setZoom((current) => clamp(current - 10, 60, 140)); return; }
+      if (!modifier && event.key === "0") { event.preventDefault(); setZoom(100); return; }
+      if (!modifier && (event.key === "Delete" || event.key === "Backspace")) { event.preventDefault(); deleteSelected(); return; }
+      if (!modifier && event.key.startsWith("Arrow")) {
+        event.preventDefault();
+        const step = event.shiftKey ? 10 : 1;
+        if (event.key === "ArrowLeft") nudgeSelected(-step, 0);
+        if (event.key === "ArrowRight") nudgeSelected(step, 0);
+        if (event.key === "ArrowUp") nudgeSelected(0, -step);
+        if (event.key === "ArrowDown") nudgeSelected(0, step);
+      }
+    };
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  });
+
   return (
     <section className="theme-studio" aria-labelledby="theme-studio-title">
       <header className="theme-studio__header">
         <div><span className="h-label">STUDIO / V1</span><h1 id="theme-studio-title">{t.title}</h1><p>{t.subtitle}</p></div>
-        <div className="theme-studio__history"><button type="button" onClick={undo} disabled={!history.past.length} aria-label="Undo">↶</button><button type="button" onClick={redo} disabled={!history.future.length} aria-label="Redo">↷</button></div>
+        <div className="theme-studio__history"><button type="button" onClick={() => { setCommandQuery(""); setPaletteOpen(true); }}>{t.commands} <kbd>⌘K</kbd></button><button type="button" onClick={undo} disabled={!history.past.length} aria-label="Undo">↶</button><button type="button" onClick={redo} disabled={!history.future.length} aria-label="Redo">↷</button></div>
       </header>
+
+      {paletteOpen ? <div className="theme-studio__palette-backdrop" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget) setPaletteOpen(false); }}><section className="theme-studio__palette" role="dialog" aria-modal="true" aria-label={t.commands}><header><strong>{t.commands}</strong><button type="button" onClick={() => setPaletteOpen(false)} aria-label="Close commands">×</button></header><input ref={paletteInputRef} value={commandQuery} onChange={(event) => setCommandQuery(event.target.value)} placeholder={t.commandPlaceholder} aria-label={t.commandPlaceholder} /><div>{filteredCommands.length ? filteredCommands.map((command) => <button type="button" key={command.id} disabled={command.disabled} onClick={() => { command.run(); setPaletteOpen(false); }}><span>{command.label}</span><kbd>{command.shortcut}</kbd></button>) : <p>{t.noCommands}</p>}</div></section></div> : null}
 
       <div className="theme-studio__toolbar">
         <label>Zoom <input aria-label="Canvas zoom" type="range" min="60" max="140" step="10" value={zoom} onChange={(event) => setZoom(Number(event.target.value))} /> {zoom}%</label>
@@ -232,7 +339,7 @@ export function ThemeStudio({ locale = "vi", initialTheme, storageKey = "horune.
           <label>Font size <input type="range" min="28" max="160" value={studio.appearance.fontSize} onChange={(event) => commit((draft) => { draft.studio!.appearance.fontSize = Number(event.target.value); })} /></label>
           <label>Opacity <input type="range" min="0.45" max="1" step="0.05" value={theme.opacity} onChange={(event) => commit((draft) => { draft.opacity = Number(event.target.value); })} /></label>
           <label>Effect<select value={theme.effect.preset} onChange={(event) => commit((draft) => { draft.effect.preset = event.target.value as typeof theme.effect.preset; })}><option value="none">None</option><option value="pulse">Pulse</option><option value="scanline">Scanline</option><option value="flip">Flip</option><option value="grain">Grain</option><option value="orbit">Orbit</option></select></label>
-          {selected ? <fieldset><legend>Selected: {selected.content}</legend><label>Content<input maxLength={80} value={selected.content} onChange={(event) => updateLayer(selected.id, (layer) => { layer.content = event.target.value || " "; })} /></label><label>X <input type="number" min="0" max="100" value={Math.round(selected.x * 100)} onChange={(event) => updateLayer(selected.id, (layer) => { layer.x = clamp(Number(event.target.value) / 100, 0, 1); })} /></label><label>Y <input type="number" min="0" max="100" value={Math.round(selected.y * 100)} onChange={(event) => updateLayer(selected.id, (layer) => { layer.y = clamp(Number(event.target.value) / 100, 0, 1); })} /></label><label>Scale <input type="range" min="0.25" max="4" step="0.05" value={selected.scale} onChange={(event) => updateLayer(selected.id, (layer) => { layer.scale = Number(event.target.value); })} /></label><label>Rotate <input type="range" min="-180" max="180" value={selected.rotation} onChange={(event) => updateLayer(selected.id, (layer) => { layer.rotation = Number(event.target.value); })} /></label><div className="theme-studio__layer-actions"><button type="button" onClick={() => moveLayer(selected.id, 1)}>Bring forward</button><button type="button" onClick={() => moveLayer(selected.id, -1)}>Send back</button><button type="button" className="danger" onClick={() => { commit((draft) => { draft.studio!.layers = draft.studio!.layers.filter((layer) => layer.id !== selected.id); }); setSelectedId(null); }}>Delete</button></div></fieldset> : <p className="theme-studio__empty">{t.noLayer}</p>}
+          {selected ? <fieldset><legend>Selected: {selected.content}</legend><label>Content<input maxLength={80} value={selected.content} onChange={(event) => updateLayer(selected.id, (layer) => { layer.content = event.target.value || " "; })} /></label><label>X <input type="number" min="0" max="100" value={Math.round(selected.x * 100)} onChange={(event) => updateLayer(selected.id, (layer) => { layer.x = clamp(Number(event.target.value) / 100, 0, 1); })} /></label><label>Y <input type="number" min="0" max="100" value={Math.round(selected.y * 100)} onChange={(event) => updateLayer(selected.id, (layer) => { layer.y = clamp(Number(event.target.value) / 100, 0, 1); })} /></label><label>Scale <input type="range" min="0.25" max="4" step="0.05" value={selected.scale} onChange={(event) => updateLayer(selected.id, (layer) => { layer.scale = Number(event.target.value); })} /></label><label>Rotate <input type="range" min="-180" max="180" value={selected.rotation} onChange={(event) => updateLayer(selected.id, (layer) => { layer.rotation = Number(event.target.value); })} /></label><label>Layer opacity <input type="range" min="0" max="1" step="0.05" value={selected.opacity} onChange={(event) => updateLayer(selected.id, (layer) => { layer.opacity = Number(event.target.value); })} /></label><div className="theme-studio__layer-actions"><button type="button" onClick={() => moveLayer(selected.id, 1)}>Bring forward</button><button type="button" onClick={() => moveLayer(selected.id, -1)}>Send back</button><button type="button" onClick={duplicateSelected}>{t.duplicate}</button><button type="button" className="danger" onClick={deleteSelected}>Delete</button></div></fieldset> : <p className="theme-studio__empty">{t.noLayer}</p>}
         </aside>
       </div>
 

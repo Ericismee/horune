@@ -34,7 +34,8 @@ Horune hiện là phần mềm preview. Chưa có bản phát hành để tải,
 | Build native macOS | **Đã xác minh trong CI / chưa xác minh phần cứng** | Rust test và bundle DMG đã qua; chưa thử hành động trên máy Mac thật |
 | Linux | **Planned** | Placeholder chỉ hỗ trợ reminder; chưa là mục tiêu phát hành |
 | Landing song ngữ (`/vi`, `/en`) | **Có trong mã nguồn** | Render tĩnh và đã kiểm tra desktop, tablet, mobile |
-| Theme Studio cốt lõi | **Có trong mã nguồn** | Editor web/desktop dùng chung, renderer, draft, undo/redo, import/export JSON hợp lệ |
+| Theme Studio cốt lõi | **Có trong mã nguồn** | Editor web/desktop dùng chung, renderer, draft, undo/redo, phím tắt có phạm vi, Command Palette và import/export JSON hợp lệ |
+| Horune Account dùng chung | **Planned / ADR nhà cung cấp đang đề xuất** | Chưa có form đăng nhập; nhà cung cấp OIDC phải qua thử nghiệm PKCE desktop và session |
 | Import ảnh/GIF/SVG ngoài | **Planned tiếp theo** | Đã có giới hạn và chính sách; chưa có nút giả trong UI |
 | Tài khoản, cộng đồng, chia sẻ, remix | **Planned** | Chờ mốc API dùng chung |
 | Marketplace và thanh toán | **Planned** | Client chưa có logic thanh toán hoặc quyền sở hữu trả phí |
@@ -63,7 +64,7 @@ Overlay native trong suốt đã có mã, nhưng README không dùng ảnh overl
 | Đồng hồ nổi | Renderer dùng chung, cửa sổ Tauri trong suốt/always-on-top, tray và 5 theme mẫu |
 | Theme Studio | Đồng hồ số, kim, flip, chữ, hybrid; màu/gradient; kích thước, opacity, hiệu ứng, ngày/giây/hành động |
 | Layer | Thêm text hoặc sticker dựng sẵn; chọn, kéo, chỉnh vị trí/tỷ lệ/góc, ẩn, khóa, đổi thứ tự, xóa |
-| Quy trình chỉnh sửa | Zoom, grid, snap, tối đa 50 trạng thái undo, redo, draft cục bộ, reset, import/export Theme JSON nghiêm ngặt |
+| Quy trình chỉnh sửa | Zoom, grid, snap, tối đa 50 trạng thái undo, redo, phím nhân bản/xóa/nudge, Command Palette có tìm kiếm, draft cục bộ, reset, import/export Theme JSON nghiêm ngặt |
 | Chuyển động và tiếp cận | `static`, `subtle`, `full`; reduced-motion; focus rõ; web responsive |
 
 Xem [Theme Studio](docs/theme-studio.md) để biết ranh giới chính xác giữa hiện tại, mốc tiếp theo và dài hạn.
@@ -161,12 +162,17 @@ Trong tương lai, tài khoản, cộng đồng, kiểm duyệt, đơn hàng và
 
 - [Kiến trúc](docs/architecture.md)
 - [Mô hình Theme Studio](docs/theme-studio.md)
+- [Ma trận tính năng Theme Studio](docs/theme-studio-feature-matrix.md)
 - [Bảo mật theme và asset](docs/theme-security.md)
 - [Giới hạn nền tảng](docs/platform-limitations.md)
+- [Kế hoạch triển khai theo thứ tự](docs/implementation-plan.md)
+- [ADR nhà cung cấp định danh](docs/adr/0002-identity-provider.md)
+- [Ma trận phân quyền](docs/authorization-matrix.md)
+- [Mô hình dữ liệu server dự kiến](docs/data-model.md)
 
 ## Kiểm thử và hiệu năng
 
-Baseline hiện đã xác minh gồm typecheck 6 workspace TypeScript, 12 unit test, production build và 18 Playwright test tại `1440×900`, `768×1024`, `390×844`. Rust test cùng bundle NSIS và DMG chưa ký đã qua trên Windows/macOS trong [CI run #3](https://github.com/Ericismee/horune/actions/runs/36442542223). Kiểm tra native chỉ bị chặn trên máy cục bộ này do Application Control trả về lỗi hệ điều hành 4551; hành động nguồn điện thật và hành vi trên máy Mac vật lý vẫn chưa được xác minh.
+Baseline hiện đã xác minh gồm typecheck 6 workspace TypeScript, 12 unit test, production build và 24 Playwright test tại `1440×900`, `768×1024`, `390×844`. Rust test cùng bundle NSIS và DMG chưa ký đã qua trên Windows/macOS trong [CI run #3](https://github.com/Ericismee/horune/actions/runs/36442542223). Kiểm tra native trên máy cục bộ này chưa hoàn tất vì môi trường MSVC hiện không tìm thấy `msvcrt.lib`; hành động nguồn điện thật và hành vi trên máy Mac vật lý vẫn chưa được xác minh.
 
 Horune được thiết kế để tránh vòng lặp riêng cho từng lịch và không render khi cửa sổ ẩn, nhưng dự án **không** tự gọi mình “nhẹ” khi chưa có số đo native. Quy trình đo CPU/RAM 60 giây và bảng kết quả đang chờ được công bố minh bạch.
 

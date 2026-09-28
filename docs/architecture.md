@@ -32,7 +32,7 @@ In words: web and desktop share the editor, schema, renderer, and design system.
 | `packages/design-system` | Color, typography, spacing, border, shadow, focus, and motion tokens |
 | `packages/theme-schema` | Strict `ThemeManifestV1`, Studio fields, resource limits, bundled themes |
 | `packages/theme-renderer` | Digital, analog, flip, word, hybrid clocks and declarative layers |
-| `packages/theme-studio` | Shared editor state, undo/redo, canvas controls, draft storage, JSON I/O |
+| `packages/theme-studio` | Shared editor state, undo/redo, scoped keyboard commands, canvas controls, draft storage, JSON I/O |
 
 ## Scheduler and persistence
 
@@ -65,6 +65,19 @@ The shared API is **planned, not implemented**. The intended split is:
 
 Public content will use CDN/cache plus pagination. User mutations use ordinary request/response and explicit cache invalidation. SSE/WebSocket will be added only for a feature that needs continuous server updates; countdowns never require it. Financial rules and paid-theme ownership stay on the backend.
 
+The proposed identity boundary uses an internal stable `user_id` and an OIDC adapter. Web sessions use server-set secure cookies; the public desktop client uses the system browser with Authorization Code + PKCE and stores credentials in an operating-system secure store. The provider is deliberately not selected until the [identity proof gate](adr/0002-identity-provider.md) passes. A session transition can change sync availability, but never scheduler state.
+
+Planned API domains are `identity`, `themes`, `community`, `commerce`, `admin`, and internal `crm`. Queue workers handle asset canonicalization, email, and payment webhooks with retry and idempotency. External CRM tenants remain out of scope until tenant isolation tests pass.
+
 ## Offline boundary
 
 The desktop scheduler, database, installed themes, overlay, tray, and simulation work without the API. Login will be required later only for sync, publishing, community interaction, purchases, and store management. A website outage must not stop or change a local schedule.
+
+## Related decisions
+
+- [Ordered implementation plan](implementation-plan.md)
+- [Theme Studio feature matrix](theme-studio-feature-matrix.md)
+- [Canvas/rendering ADR](adr/0001-theme-canvas-rendering.md)
+- [Identity provider ADR](adr/0002-identity-provider.md)
+- [Authorization matrix](authorization-matrix.md)
+- [Planned server data model](data-model.md)

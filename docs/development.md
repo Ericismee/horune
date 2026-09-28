@@ -149,7 +149,7 @@ The repository allows `127.0.0.1` through `allowedDevOrigins` because Playwright
 
 ### Rust cannot find MSVC libraries
 
-Confirm that Visual Studio's Desktop development with C++ workload and a Windows SDK are installed, then use Developer PowerShell. Do not switch to an incompatible GNU toolchain as a workaround for a Tauri MSVC build.
+Confirm that Visual Studio's Desktop development with C++ workload and a Windows SDK are installed, then use Developer PowerShell. `LNK1104: cannot open file 'msvcrt.lib'` means the Universal CRT/Windows SDK library directories are missing or not discoverable; repair/install the Windows SDK component and reopen Developer PowerShell. Do not switch to an incompatible GNU toolchain as a workaround for a Tauri MSVC build.
 
 ### OS error 4551 / Application Control
 

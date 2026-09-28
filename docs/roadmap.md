@@ -27,11 +27,13 @@ Status is based on repository evidence, not the original plan. “Available” m
 - Palette/gradient, opacity, font size, effect, seconds/date/action controls.
 - Bounded text and built-in sticker layers with drag, numeric position, scale, rotate, hide, lock, order, and delete.
 - Zoom, grid, snap, undo/redo, local draft save/restore, reset, validated JSON import/export.
+- Scoped keyboard editing for save, undo/redo, duplicate, delete, deselect, pixel nudge and zoom.
+- Searchable Command Palette containing implemented actions only.
 
 **Next milestone**
 
 - PNG/WebP/GIF/safe-SVG ingestion and canonicalization with byte/dimension/frame/memory/license controls.
-- Resize handles, multi-select, group/ungroup, duplicate, alignment/distribution, guides, keyboard controls.
+- Resize handles, multi-select, group/ungroup, alignment/distribution, rulers, guides and smart guides.
 - Asset-aware portable theme bundles, autosave versions, named restore points, and per-theme profiling.
 - Low-power/battery detection and automatic static/low-quality fallback.
 - Tested declarative Figma conversion for a documented subset. Unsupported nodes produce a report; no creator code executes.
@@ -52,7 +54,8 @@ Status is based on repository evidence, not the original plan. “Available” m
 **Planned**
 
 - Fastify/TypeScript API, PostgreSQL migrations, S3-compatible object storage, OpenAPI-generated client.
-- Account/session flow shared by web and desktop; guest use remains available for app and free theme installation.
+- Standards-first OIDC account/session flow shared by web and desktop; guest use remains available for the timer and public preview. The provider decision is still proposed and gated by a proof-of-concept.
+- System-browser Authorization Code + PKCE for desktop, secure OS credential storage, server cookie sessions for web, device/session revocation and local-theme conflict resolution.
 - Draft sync, theme versions, publish → review → discover → install.
 - Saves, follows, comments, reports, moderation, attribution, and remix lineage.
 - Cache/CDN for public reads, pagination, upload limits, role/ownership checks, and admin audit history.
@@ -83,3 +86,5 @@ Real payments wait for verification of operator entity, receiving country, tax/c
 ## Exit criteria for any milestone
 
 A feature moves from planned/in-progress to available only when its code path exists, tests proportionate to its risk pass, real UI is inspected where applicable, limitations are documented, and the README status table is updated. Mockups, disabled buttons, schemas without consumers, and CI configuration without a successful run are not completion evidence.
+
+The cross-milestone delivery order and acceptance gates are in [implementation-plan.md](implementation-plan.md). The target role model is in [authorization-matrix.md](authorization-matrix.md), and architecture decisions live under [`docs/adr`](adr/).

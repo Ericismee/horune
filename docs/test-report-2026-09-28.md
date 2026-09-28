@@ -14,12 +14,12 @@
 | --- | --- | --- |
 | TypeScript typecheck | Pass | Six workspace packages/apps |
 | Production web build | Pass | Next.js static output for `/vi`, `/en`, and both Studio routes |
-| Desktop webview build | Pass | Vite main JS 358.58 kB raw / 108.36 kB gzip |
+| Desktop webview build | Pass | Vite main JS 363.10 kB raw / 109.61 kB gzip |
 | Unit tests | Pass, 12/12 | Schema, renderer, Studio JSON I/O, countdown logic |
-| Playwright UI tests | Pass, 18/18 | 1440×900, 768×1024, 390×844; English default; VI/EN; Studio draft; keyboard; screenshots |
+| Playwright UI tests | Pass, 24/24 | 1440×900, 768×1024, 390×844; English default; VI/EN; honest CTA/status; hero controls; Studio draft and keyboard commands; screenshots |
 | Browser interaction QA | Pass | Live countdown/theme selection; Studio layer and hybrid renderer; desktop Studio |
 | Rust formatting | Pass | `cargo fmt` applied |
-| Native Rust tests | Pass in CI | Windows and macOS runners; blocked locally by Application Control error 4551 |
+| Native Rust tests | Pass in CI | Windows and macOS runners; local run currently fails before project tests because MSVC cannot locate `msvcrt.lib` (`LNK1104`) |
 | Windows NSIS installer | Pass in CI | Unsigned CI artifact built in [run #3](https://github.com/Ericismee/horune/actions/runs/36442542223); no real power action executed |
 | macOS DMG | Pass in CI | Unsigned CI artifact built in the same run; no physical Mac action test |
 
