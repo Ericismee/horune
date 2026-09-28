@@ -76,7 +76,7 @@ pub async fn run(app: AppHandle) {
 
         let wait = {
             let state = app.state::<AppState>();
-            match state.db.lock() {
+            let next_delay = match state.db.lock() {
                 Err(_) => Duration::from_secs(1),
                 Ok(connection) => {
                     let mut active = db::active_schedule(&connection).ok().flatten();
@@ -132,7 +132,8 @@ pub async fn run(app: AppHandle) {
                     }
                     next_wait(active.as_ref(), now)
                 }
-            }
+            };
+            next_delay
         };
 
         if let Some(schedule) = warning_event {
