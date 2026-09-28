@@ -19,9 +19,9 @@
 | Playwright UI tests | Pass, 18/18 | 1440×900, 768×1024, 390×844; English default; VI/EN; Studio draft; keyboard; screenshots |
 | Browser interaction QA | Pass | Live countdown/theme selection; Studio layer and hybrid renderer; desktop Studio |
 | Rust formatting | Pass | `cargo fmt` applied |
-| Native Rust tests | Blocked locally | Windows Application Control error 4551; CI job configured, result pending |
-| Windows NSIS installer | Blocked locally | Same host policy; CI job configured, result pending |
-| macOS native build | Not locally verified | macOS CI job configured, result pending |
+| Native Rust tests | Pass in CI | Windows and macOS runners; blocked locally by Application Control error 4551 |
+| Windows NSIS installer | Pass in CI | Unsigned CI artifact built in [run #3](https://github.com/Ericismee/horune/actions/runs/36442542223); no real power action executed |
+| macOS DMG | Pass in CI | Unsigned CI artifact built in the same run; no physical Mac action test |
 
 All automated tests use simulation or pure logic. No test executed a real sleep, shutdown, or lock command.
 
@@ -36,4 +36,4 @@ Playwright writes stable captures to `docs/screenshots`:
 - `desktop-small.png`
 - `editor-desktop.png`
 
-The landing page was also inspected in the application browser with JavaScript enabled. An extension-added `bis_skin_checked` attribute can appear as a hydration warning in that instrumented browser; it does not reproduce in clean Playwright sessions and does not originate in application markup.
+The landing page was also inspected in the application browser with JavaScript enabled. Clean Playwright sessions now assert that the English-default route emits no hydration error at desktop, tablet, or mobile sizes.

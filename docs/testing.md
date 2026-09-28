@@ -36,9 +36,11 @@ The production build passed for the shared packages, Next.js routes, and Vite de
 
 Manual browser QA additionally changed the editor to a hybrid face, enabled the date, added a layer, and confirmed the renderer updated in both web and desktop surfaces.
 
-## Not verified locally
+Rust tests and platform bundles also passed in [CI run #3](https://github.com/Ericismee/horune/actions/runs/36442542223): Windows produced an NSIS artifact and macOS produced a DMG artifact.
 
-Rust source was formatted, but local `cargo test` and NSIS could not complete because Windows Application Control blocked generated Cargo build-script executables with OS error 4551. No security-control bypass was attempted. Windows and macOS native jobs are defined in `.github/workflows/ci.yml`; their results should be treated as pending until the pushed workflow reports them.
+## Native and hardware limitations
+
+Rust source was formatted, but local `cargo test` and NSIS could not complete because Windows Application Control blocked generated Cargo build-script executables with OS error 4551. No security-control bypass was attempted. The equivalent Rust tests and bundle steps succeeded in CI; that result validates compilation and packaging, not physical power-management behavior.
 
 No physical macOS test, Linux release build, signed installer, tray-only resource measurement, or real Sleep/shutdown/lock action has been claimed.
 

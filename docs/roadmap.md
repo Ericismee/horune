@@ -11,10 +11,11 @@ Status is based on repository evidence, not the original plan. “Available” m
 - Desktop scheduling UI, SQLite persistence, one Rust scheduler, simulation default, warning, pause/resume, +5, cancel, and overdue confirmation logic.
 - Windows/macOS action adapters, tray wiring, and transparent overlay source.
 - Bilingual static landing and responsive Playwright coverage.
+- Windows/macOS Rust tests plus NSIS and DMG bundles in CI.
 
 **In progress / not verified**
 
-- Native Windows test/NSIS result, physical macOS behavior, real tray/overlay capture, and signed releases.
+- Physical Windows/macOS power-action behavior, real tray/overlay capture, and signed releases.
 - 60-second CPU/RAM/GPU baseline in main, overlay, and tray states.
 
 ## Milestone 1.5 — Theme Studio core

@@ -30,8 +30,8 @@ Horune is preview software. There is no downloadable release yet, real system ac
 | Area                                          | Status                         | Evidence / limitation                                                                           |
 | -----------------------------------------------| --------------------------------| -------------------------------------------------------------------------------------------------|
 | Windows desktop UI and local scheduler source | **Available in source**        | React/Vite build and browser preview pass; Rust adapter is implemented                          |
-| Windows native installer and power actions    | **Not verified**               | Host Application Control blocks Cargo build-script executables; CI is configured                |
-| macOS adapter and build job                   | **In progress / not verified** | Platform-specific source and macOS CI job exist; no physical Mac test yet                       |
+| Windows native build                          | **Verified in CI**             | Rust tests and the NSIS bundle pass; real power actions still need hardware validation           |
+| macOS native build                            | **Verified in CI / hardware unverified** | Rust tests and the DMG bundle pass; no physical Mac action test yet                    |
 | Linux                                         | **Planned**                    | Reminder-only capability placeholder; no release target                                         |
 | Bilingual landing (`/vi`, `/en`)              | **Available in source**        | Statically generated and tested at desktop, tablet, and mobile sizes                            |
 | Theme Studio core                             | **Available in source**        | Shared web/desktop editor, renderer, draft storage, undo/redo, and validated JSON import/export |
@@ -152,7 +152,7 @@ Future accounts, community data, moderation, orders, and ownership will live beh
 
 ## Testing and performance
 
-The current verified baseline is six TypeScript workspace typechecks, 12 unit tests, a production build, and 18 Playwright tests across `1440×900`, `768×1024`, and `390×844`. The native Rust test and installer steps remain unverified locally because host Application Control returns OS error 4551; equivalent Windows/macOS jobs are defined in CI.
+The current verified baseline is six TypeScript workspace typechecks, 12 unit tests, a production build, and 18 Playwright tests across `1440×900`, `768×1024`, and `390×844`. Rust tests plus unsigned NSIS and DMG bundles passed on Windows/macOS in [CI run #3](https://github.com/Ericismee/horune/actions/runs/36442542223). Native checks remain blocked only on this local machine because host Application Control returns OS error 4551; real power actions and physical macOS behavior are still unverified.
 
 Horune is designed to avoid per-schedule loops and hidden-window rendering, but the project does **not** call itself lightweight without native measurements. The 60-second CPU/RAM sampler and the empty, explicitly pending measurement matrix are documented.
 

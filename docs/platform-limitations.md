@@ -4,11 +4,11 @@
 
 The React/Vite and Next.js applications were built and tested on Windows 10 build 26200. The Rust source is formatted and the Windows adapter is implemented. On the verification machine, Windows Application Control blocks newly generated Cargo build-script executables with OS error 4551. This prevents a trustworthy local `cargo test` and NSIS installer result even inside the Visual Studio developer shell.
 
-The repository therefore includes a Windows GitHub Actions native job. Its result remains pending until the workflow runs after push. This is an environment policy limitation, not a reason to disable or bypass host security controls.
+The Windows native job passed Rust tests and produced an NSIS artifact in [CI run #3](https://github.com/Ericismee/horune/actions/runs/36442542223). This validates compilation and packaging, not real Sleep/shutdown/lock behavior. The local restriction is an environment policy limitation, not a reason to disable or bypass host security controls.
 
 ## macOS
 
-The adapter and CI build target are present, but no claim of hardware verification is made. A macOS GitHub Actions job is configured to run Rust tests and create a DMG; its result remains pending until the pushed workflow runs. Sleep/shutdown/lock behavior still requires manual validation on a physical macOS machine before release.
+The adapter and CI build target are present, but no claim of hardware verification is made. The macOS job passed Rust tests and produced a DMG artifact in [CI run #3](https://github.com/Ericismee/horune/actions/runs/36442542223). Sleep/shutdown/lock behavior still requires manual validation on a physical macOS machine before release.
 
 ## Linux
 

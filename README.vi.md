@@ -30,8 +30,8 @@ Horune hiện là phần mềm preview. Chưa có bản phát hành để tải,
 | Khu vực | Trạng thái | Bằng chứng / giới hạn |
 | --- | --- | --- |
 | UI desktop Windows và mã scheduler cục bộ | **Có trong mã nguồn** | React/Vite build và browser preview đã qua; adapter Rust đã được triển khai |
-| Installer Windows và hành động nguồn điện | **Chưa xác minh** | Application Control chặn executable build-script của Cargo; CI đã được cấu hình |
-| Adapter và job build macOS | **Đang phát triển / chưa xác minh** | Có mã theo nền tảng và job CI macOS; chưa thử trên máy Mac thật |
+| Build native Windows | **Đã xác minh trong CI** | Rust test và bundle NSIS đã qua; hành động nguồn điện thật vẫn cần kiểm tra phần cứng |
+| Build native macOS | **Đã xác minh trong CI / chưa xác minh phần cứng** | Rust test và bundle DMG đã qua; chưa thử hành động trên máy Mac thật |
 | Linux | **Planned** | Placeholder chỉ hỗ trợ reminder; chưa là mục tiêu phát hành |
 | Landing song ngữ (`/vi`, `/en`) | **Có trong mã nguồn** | Render tĩnh và đã kiểm tra desktop, tablet, mobile |
 | Theme Studio cốt lõi | **Có trong mã nguồn** | Editor web/desktop dùng chung, renderer, draft, undo/redo, import/export JSON hợp lệ |
@@ -152,7 +152,7 @@ Trong tương lai, tài khoản, cộng đồng, kiểm duyệt, đơn hàng và
 
 ## Kiểm thử và hiệu năng
 
-Baseline hiện đã xác minh gồm typecheck 6 workspace TypeScript, 12 unit test, production build và 18 Playwright test tại `1440×900`, `768×1024`, `390×844`. Rust test và installer native chưa được xác minh cục bộ do Application Control trả về lỗi hệ điều hành 4551; CI có job tương ứng cho Windows/macOS.
+Baseline hiện đã xác minh gồm typecheck 6 workspace TypeScript, 12 unit test, production build và 18 Playwright test tại `1440×900`, `768×1024`, `390×844`. Rust test cùng bundle NSIS và DMG chưa ký đã qua trên Windows/macOS trong [CI run #3](https://github.com/Ericismee/horune/actions/runs/36442542223). Kiểm tra native chỉ bị chặn trên máy cục bộ này do Application Control trả về lỗi hệ điều hành 4551; hành động nguồn điện thật và hành vi trên máy Mac vật lý vẫn chưa được xác minh.
 
 Horune được thiết kế để tránh vòng lặp riêng cho từng lịch và không render khi cửa sổ ẩn, nhưng dự án **không** tự gọi mình “nhẹ” khi chưa có số đo native. Quy trình đo CPU/RAM 60 giây và bảng kết quả đang chờ được công bố minh bạch.
 
