@@ -219,7 +219,7 @@ export function ThemeStudio({ locale = "vi", initialTheme, storageKey = "horune.
 
         <div className="theme-studio__stage" onPointerMove={dragLayer} onPointerUp={finishDrag} onPointerCancel={finishDrag}>
           <div className={`theme-studio__canvas ${grid ? "has-grid" : ""}`} style={{ width: `${zoom}%`, aspectRatio: `${studio.canvas.width} / ${studio.canvas.height}`, "--studio-grid": `${studio.canvas.gridSize}px` } as CSSProperties}>
-            <ClockThemeRenderer theme={theme} remainingMs={30 * 60_000} endAt={Date.now() + 30 * 60_000} action="sleep" locale={locale} motionMode={motion} selectedLayerId={selectedId} onLayerPointerDown={startDrag} />
+            <ClockThemeRenderer theme={theme} remainingMs={30 * 60_000} action="sleep" locale={locale} motionMode={motion} selectedLayerId={selectedId} onLayerPointerDown={startDrag} />
           </div>
           <small>{studio.canvas.width} × {studio.canvas.height}px · {t.currentSupport}</small>
         </div>

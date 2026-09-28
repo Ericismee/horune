@@ -1,10 +1,15 @@
 import { expect, test } from "@playwright/test";
 
 test("root route defaults to English", async ({ page }) => {
+  const hydrationErrors: string[] = [];
+  page.on("console", (message) => {
+    if (message.type() === "error" && /hydration/i.test(message.text())) hydrationErrors.push(message.text());
+  });
   await page.goto("/");
   await expect(page).toHaveURL(/\/en$/);
   await expect(page.locator("html")).toHaveAttribute("lang", "en");
   await expect(page.getByRole("heading", { level: 1 })).toContainText("time to rest");
+  await expect.poll(() => hydrationErrors).toEqual([]);
 });
 
 test("Vietnamese landing exposes the core journey", async ({ page }) => {

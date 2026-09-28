@@ -81,9 +81,10 @@ pub fn history(connection: &Connection, limit: usize) -> rusqlite::Result<Vec<Sc
         "SELECT id, action, mode, created_at, scheduled_for, warning_offset_ms, status, simulation, paused_remaining_ms, warned, message
          FROM schedules ORDER BY created_at DESC LIMIT ?1"
     )?;
-    statement
+    let schedules = statement
         .query_map([limit as i64], row_to_schedule)?
-        .collect()
+        .collect();
+    schedules
 }
 
 pub fn set_setting(connection: &Connection, key: &str, value: &str) -> rusqlite::Result<()> {

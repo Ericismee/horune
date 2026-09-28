@@ -7,9 +7,11 @@ import { sampleThemes } from "@horune/theme-schema";
 export function HeroClock({ locale }: { locale: "vi" | "en" }) {
   const target = useRef(0);
   const [remaining, setRemaining] = useState(30 * 60 * 1000);
+  const [endAt, setEndAt] = useState<number | undefined>(undefined);
 
   useEffect(() => {
     target.current = Date.now() + 30 * 60 * 1000;
+    setEndAt(target.current);
     const tick = () => setRemaining(Math.max(0, target.current - Date.now()));
     let timer = window.setInterval(tick, 1000);
     const onVisibility = () => {
@@ -24,7 +26,7 @@ export function HeroClock({ locale }: { locale: "vi" | "en" }) {
   return (
     <div className="hero-clock-shell" aria-label="Horune floating clock preview">
       <div className="window-grab"><span /><span>FLOATING CLOCK</span><span>•••</span></div>
-      <ClockThemeRenderer theme={sampleThemes[0]!} remainingMs={remaining} endAt={Date.now() + remaining} action="sleep" locale={locale} motionMode="subtle" />
+      <ClockThemeRenderer theme={sampleThemes[0]!} remainingMs={remaining} endAt={endAt} action="sleep" locale={locale} motionMode="subtle" />
       <div className="clock-actions"><button type="button">+5 MIN</button><button type="button">Ⅱ</button><button type="button" className="cancel">{locale === "vi" ? "HỦY" : "CANCEL"}</button></div>
     </div>
   );
