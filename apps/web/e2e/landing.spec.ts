@@ -92,3 +92,18 @@ test("Theme Studio keyboard commands are real and scoped", async ({ page }) => {
   await palette.getByRole("button", { name: /Save draft/ }).click();
   await expect(page.locator("output")).toContainText("Draft saved");
 });
+
+test("Theme Studio layout tools change the manifest and can be undone", async ({ page }) => {
+  await page.goto("/en/studio");
+  await page.getByRole("button", { name: "+ Text" }).click();
+  await page.getByRole("button", { name: "Align bottom" }).click();
+  await expect(page.getByLabel("Y", { exact: true })).toHaveValue("90");
+  await page.getByRole("button", { name: "Wide" }).click();
+  await expect(page.getByLabel("Width (px)")).toHaveValue("720");
+  await page.getByRole("button", { name: "Move layer right" }).click();
+  await expect(page.getByText(/X \d+ px · Y \d+ px/)).toBeVisible();
+  await page.getByRole("button", { name: "Undo" }).click();
+  await expect(page.getByLabel("Width (px)")).toHaveValue("720");
+  await page.getByRole("button", { name: "Undo" }).click();
+  await expect(page.getByLabel("Width (px)")).toHaveValue("560");
+});

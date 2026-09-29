@@ -9,7 +9,8 @@ Status is based on repository evidence, not the original plan. “Available” m
 - pnpm/Turborepo monorepo and shared design system.
 - Strict `ThemeManifestV1`, five bundled themes, and shared renderer.
 - Desktop scheduling UI, SQLite persistence, one Rust scheduler, simulation default, warning, pause/resume, +5, cancel, and overdue confirmation logic.
-- Windows/macOS action adapters, tray wiring, and transparent overlay source.
+- Crash-safe `due`/`dispatching` persistence, terminal result/history records, stable-ID events, and no automatic repeat after interrupted dispatch.
+- Windows/macOS action adapters, tray wiring, and transparent overlay source with native resize, persisted position/DPI, Home, icon mode, pin/unpin, idle controls, and configurable success auto-hide.
 - Bilingual static landing and responsive Playwright coverage.
 - Windows/macOS Rust tests plus NSIS and DMG bundles in CI.
 
@@ -29,6 +30,7 @@ Status is based on repository evidence, not the original plan. “Available” m
 - Zoom, grid, snap, undo/redo, local draft save/restore, reset, validated JSON import/export.
 - Scoped keyboard editing for save, undo/redo, duplicate, delete, deselect, pixel nudge and zoom.
 - Searchable Command Palette containing implemented actions only.
+- Desktop built-in/personal theme selection, validated **Apply to overlay**, atomic persistence, cross-window updates, and safe invalid/unsupported fallback.
 
 **Next milestone**
 

@@ -52,19 +52,21 @@ Horune hiện là phần mềm preview. Chưa có bản phát hành để tải,
 
 <img src="docs/screenshots/editor-desktop.png" alt="Horune Theme Studio đang chạy với layer, canvas và bảng thuộc tính" width="1100">
 
-Overlay native trong suốt đã có mã, nhưng README không dùng ảnh overlay làm bằng chứng phát hành vì máy hiện tại chưa tạo được executable Tauri. Các ảnh responsive nằm trong [`docs/screenshots`](docs/screenshots).
+<img src="docs/screenshots/overlay-browser-preview.png" alt="Browser preview của đồng hồ nổi Horune với vùng ngoài trong suốt, layer tùy chỉnh và các điều khiển" width="430">
+
+Ảnh cuối được ghi rõ là browser preview đang chạy, không phải bằng chứng phát hành native. Overlay native trong suốt đã có mã, nhưng README chưa có ảnh xuyên tới desktop vì máy hiện tại chưa tạo được executable Tauri. Các ảnh responsive nằm trong [`docs/screenshots`](docs/screenshots).
 
 ## Tính năng
 
 | Tính năng | Hiện hoạt động |
 | --- | --- |
-| Hẹn giờ cục bộ | Theo khoảng hoặc ngày giờ; Sleep, tắt máy, khóa, reminder; cảnh báo; pause/resume; +5 phút; hủy |
-| Khôi phục an toàn | Một scheduler Rust; tính từ deadline; lịch quá hạn phải xác nhận lại |
+| Hẹn giờ cục bộ | Theo khoảng hoặc ngày giờ; Sleep, tắt máy, khóa, reminder; cảnh báo; pause/resume; +5 phút; hủy; history cục bộ |
+| Khôi phục an toàn | Một scheduler Rust; trạng thái `due`/`dispatching` bền vững; hành động gián đoạn hoặc quá hạn phải xác nhận và không tự chạy lại |
 | Mô phỏng | Bật ở lần đầu; test tự động không gọi hành động hệ điều hành thật |
-| Đồng hồ nổi | Renderer dùng chung, cửa sổ Tauri trong suốt/always-on-top, tray và 5 theme mẫu |
+| Đồng hồ nổi | Renderer dùng chung, bề mặt Tauri trong suốt và resize được, lưu vị trí/DPI, Home, chế độ icon, ghim/bỏ ghim native, tự ẩn nút và thông báo kết quả |
 | Theme Studio | Đồng hồ số, kim, flip, chữ, hybrid; màu/gradient; kích thước, opacity, hiệu ứng, ngày/giây/hành động |
 | Layer | Thêm text hoặc sticker dựng sẵn; chọn, kéo, chỉnh vị trí/tỷ lệ/góc, ẩn, khóa, đổi thứ tự, xóa |
-| Quy trình chỉnh sửa | Zoom, grid, snap, tối đa 50 trạng thái undo, redo, phím nhân bản/xóa/nudge, Command Palette có tìm kiếm, draft cục bộ, reset, import/export Theme JSON nghiêm ngặt |
+| Quy trình chỉnh sửa | Zoom, grid, snap, tối đa 50 trạng thái undo, redo, phím nhân bản/xóa/nudge, Command Palette có tìm kiếm, draft cục bộ, reset, import/export Theme JSON nghiêm ngặt, apply/fallback desktop có xác thực |
 | Chuyển động và tiếp cận | `static`, `subtle`, `full`; reduced-motion; focus rõ; web responsive |
 
 Xem [Theme Studio](docs/theme-studio.md) để biết ranh giới chính xác giữa hiện tại, mốc tiếp theo và dài hạn.
@@ -146,11 +148,11 @@ docs/                   Kiến trúc, bảo mật, kiểm thử, roadmap
 3. Kiểm tra thời điểm kết thúc rồi chọn **Bắt đầu**.
 4. Dùng cửa sổ chính, overlay hoặc tray để tạm dừng, cộng năm phút hay hủy.
 
-Nếu Horune trở lại sau deadline vì sleep, restart, thoát app hoặc thay đổi đồng hồ, lịch chuyển sang `awaiting_confirmation` và không tự thực thi.
+Khi đến hạn, Horune ghi `due` và `dispatching` trước khi gọi adapter. Mô phỏng hiện kết quả ngắn rồi ẩn overlay nếu cài đặt tự ẩn mặc định đang bật; history vẫn còn. Nếu Horune trở lại sau một deadline bị bỏ lỡ hoặc dispatch bị gián đoạn do sleep, restart, thoát app hay thay đổi đồng hồ, lịch chuyển sang `awaiting_confirmation` và không tự thực thi lại.
 
 ### Đổi hoặc chỉnh theme
 
-Chọn theme có sẵn trong phần preview của scheduler, hoặc mở **Studio**. Studio hiện hỗ trợ 5 loại đồng hồ, điều khiển hình thức, layer text/sticker dựng sẵn, kéo trên canvas, thứ tự, undo/redo và draft cục bộ.
+Chọn theme có sẵn trong phần preview của scheduler, hoặc mở **Studio**. Studio hiện hỗ trợ 5 loại đồng hồ, điều khiển hình thức, layer text/sticker dựng sẵn, kéo trên canvas, thứ tự, undo/redo và draft cục bộ. **Apply to overlay** xác thực rồi lưu nguyên tử một bản fork tùy chỉnh; preview chính và overlay đổi cùng nhau và khôi phục sau restart. Theme tùy chỉnh lỗi hoặc khác phiên bản sẽ fallback an toàn thay vì làm overlay trắng.
 
 **Xuất JSON** tạo file `.horune.json`. **Nhập JSON** chỉ nhận tài liệu `ThemeManifestV1` hợp lệ không quá 256 KiB. HTML, CSS, JavaScript, URL và lệnh hệ thống tùy ý không thể biểu diễn. Import asset nhị phân là planned, không được chấp nhận ngầm.
 
@@ -161,6 +163,7 @@ UI desktop gọi Tauri commands dùng SQLite và một scheduler cục bộ duy 
 Trong tương lai, tài khoản, cộng đồng, kiểm duyệt, đơn hàng và quyền sở hữu sẽ nằm sau API Fastify/PostgreSQL, object storage tương thích S3 và client tạo từ OpenAPI. Client không được quyết định quyền theme trả phí hay logic tài chính.
 
 - [Kiến trúc](docs/architecture.md)
+- [Vòng đời scheduler và overlay](docs/scheduler-overlay-lifecycle.md)
 - [Mô hình Theme Studio](docs/theme-studio.md)
 - [Ma trận tính năng Theme Studio](docs/theme-studio-feature-matrix.md)
 - [Bảo mật theme và asset](docs/theme-security.md)
@@ -172,13 +175,13 @@ Trong tương lai, tài khoản, cộng đồng, kiểm duyệt, đơn hàng và
 
 ## Kiểm thử và hiệu năng
 
-Baseline hiện đã xác minh gồm typecheck 6 workspace TypeScript, 12 unit test, production build và 24 Playwright test tại `1440×900`, `768×1024`, `390×844`. Rust test cùng bundle NSIS và DMG chưa ký đã qua trên Windows/macOS trong [CI run #3](https://github.com/Ericismee/horune/actions/runs/36442542223). Kiểm tra native trên máy cục bộ này chưa hoàn tất vì môi trường MSVC hiện không tìm thấy `msvcrt.lib`; hành động nguồn điện thật và hành vi trên máy Mac vật lý vẫn chưa được xác minh.
+Baseline cục bộ hiện tại gồm typecheck 6 workspace TypeScript, 20 unit test, production build và 27 ca Playwright ở `1440×900`, `768×1024`, `390×844`. Browser QA cũng xác nhận `html`, `body`, root của route overlay đều trong suốt, chuỗi lỗi thô cũ không còn và theme fork hợp lệ đi tới preview overlay. Rust test cùng bundle NSIS/DMG chưa ký trước đây đã qua trong [CI run #3](https://github.com/Ericismee/horune/actions/runs/36442542223); các test vòng đời Rust mới chờ CI vì MSVC cục bộ không tìm thấy `msvcrt.lib`. Hành động nguồn điện thật và macOS vật lý vẫn chưa xác minh.
 
 Horune được thiết kế để tránh vòng lặp riêng cho từng lịch và không render khi cửa sổ ẩn, nhưng dự án **không** tự gọi mình “nhẹ” khi chưa có số đo native. Quy trình đo CPU/RAM 60 giây và bảng kết quả đang chờ được công bố minh bạch.
 
 - [Kiểm thử](docs/testing.md)
 - [Hiệu năng](docs/performance.md)
-- [Báo cáo xác minh theo ngày](docs/test-report-2026-09-28.md)
+- [Báo cáo xác minh theo ngày](docs/test-report-2026-09-29.md)
 
 ## Lộ trình
 

@@ -52,19 +52,21 @@ These are Playwright captures of the running local applications, not design mock
 
 <img src="docs/screenshots/editor-desktop.png" alt="Running Horune Theme Studio with layers, canvas, and property controls" width="1100">
 
-The transparent native overlay is implemented, but no overlay screenshot is presented as release evidence because the host could not produce a Tauri executable. Responsive captures are available in [`docs/screenshots`](docs/screenshots).
+<img src="docs/screenshots/overlay-browser-preview.png" alt="Horune floating clock browser preview with a transparent outer surface, custom layer, and controls" width="430">
+
+The last image is explicitly the running browser preview, not native-release evidence. The transparent native overlay is implemented, but no desktop-through overlay screenshot is presented because the host could not produce a Tauri executable. Responsive captures are available in [`docs/screenshots`](docs/screenshots).
 
 ## Features
 
 | Feature | What works now |
 | --- | --- |
-| Local scheduling | Duration or exact date/time; Sleep, shutdown, lock, or reminder; warning; pause/resume; +5 minutes; cancel |
-| Safe recovery | One Rust scheduler; deadlines rather than decrementing counters; overdue schedules require confirmation |
+| Local scheduling | Duration or exact date/time; Sleep, shutdown, lock, or reminder; warning; pause/resume; +5 minutes; cancel; retained local history |
+| Safe recovery | One Rust scheduler; durable `due`/`dispatching` states; interrupted or overdue actions require confirmation and are never repeated automatically |
 | Simulation | Enabled on first launch; automated tests never invoke a real operating-system action |
-| Floating clock | Shared renderer, transparent always-on-top Tauri window, tray controls, five bundled themes |
+| Floating clock | Shared renderer, truly transparent resizable Tauri surface, persisted position/DPI, Home, icon mode, native pin/unpin, idle controls, terminal result, and configurable auto-hide |
 | Theme Studio | Digital, analog, flip, word, and hybrid faces; colors and gradients; size, opacity, effect, date/seconds/action toggles |
 | Layers | Add text or built-in stickers; select, drag, position, scale, rotate, hide, lock, reorder, and delete |
-| Editing workflow | Zoom, grid, snap, up to 50 undo states, redo, duplicate/delete/nudge shortcuts, searchable Command Palette, local draft save/restore, reset, strict Theme JSON import/export |
+| Editing workflow | Zoom, grid, snap, up to 50 undo states, redo, duplicate/delete/nudge shortcuts, searchable Command Palette, local draft save/restore, reset, strict Theme JSON import/export, validated desktop apply/fallback |
 | Motion and access | `static`, `subtle`, and `full`; reduced-motion support; visible focus; responsive web layout |
 
 See [Theme Studio](docs/theme-studio.md) for the exact current/next/long-term boundary.
@@ -146,11 +148,11 @@ docs/                   Architecture, security, testing, roadmap
 3. Confirm the displayed finish time, then select **Start**.
 4. Use the main window, overlay, or tray to pause, add five minutes, or cancel.
 
-If Horune returns after the deadline because of sleep, restart, exit, or a clock jump, the schedule becomes `awaiting_confirmation`. It does not execute automatically.
+At the deadline, Horune persists `due` and `dispatching` before invoking the adapter. Simulation shows a short completion result, then hides the overlay when the default auto-hide setting is on; history remains. If Horune returns after a missed or interrupted deadline because of sleep, restart, exit, or a clock jump, the schedule becomes `awaiting_confirmation`. It does not execute automatically.
 
 ### Change or edit a theme
 
-Choose a bundled theme from the scheduler preview, or open **Studio**. Studio currently supports the five clock types, visual controls, text/built-in sticker layers, canvas dragging, ordering, undo/redo, and local drafts.
+Choose a bundled theme from the scheduler preview, or open **Studio**. Studio currently supports the five clock types, visual controls, text/built-in sticker layers, canvas dragging, ordering, undo/redo, and local drafts. **Apply to overlay** validates and stores one custom fork atomically; the main preview and overlay update together and restore the selection after restart. Invalid or unsupported custom data falls back safely instead of blanking the overlay.
 
 Use **Export JSON** to create a `.horune.json` file. **Import JSON** accepts only a valid `ThemeManifestV1` document no larger than 256 KiB. Arbitrary HTML, CSS, JavaScript, URLs, and system commands are not representable. Binary asset import is planned, not silently accepted.
 
@@ -161,6 +163,7 @@ The desktop UI talks to Tauri commands backed by SQLite and a single local sched
 Future accounts, community data, moderation, orders, and ownership will live behind a Fastify/PostgreSQL API with S3-compatible asset storage and an OpenAPI-generated client. Paid-theme access and financial rules will never be trusted to the client.
 
 - [Architecture](docs/architecture.md)
+- [Scheduler and overlay lifecycle](docs/scheduler-overlay-lifecycle.md)
 - [Theme Studio model](docs/theme-studio.md)
 - [Theme Studio feature matrix](docs/theme-studio-feature-matrix.md)
 - [Theme and asset security](docs/theme-security.md)
@@ -172,13 +175,13 @@ Future accounts, community data, moderation, orders, and ownership will live beh
 
 ## Testing and performance
 
-The current verified baseline is six TypeScript workspace typechecks, 12 unit tests, a production build, and 24 Playwright tests across `1440×900`, `768×1024`, and `390×844`. Rust tests plus unsigned NSIS and DMG bundles passed on Windows/macOS in [CI run #3](https://github.com/Ericismee/horune/actions/runs/36442542223). Native checks remain incomplete on this local machine because the current MSVC environment cannot locate `msvcrt.lib`; real power actions and physical macOS behavior are still unverified.
+The current local baseline is six TypeScript workspace typechecks, 20 unit tests, a production build, and 27 Playwright cases across `1440×900`, `768×1024`, and `390×844`. Browser QA also verified that `html`, `body`, and root are transparent on the overlay route, the former raw error text is absent, and a validated Studio fork reaches the overlay preview. Earlier Rust tests plus unsigned NSIS and DMG bundles passed on Windows/macOS in [CI run #3](https://github.com/Ericismee/horune/actions/runs/36442542223); the new Rust lifecycle tests await CI because this local MSVC environment cannot locate `msvcrt.lib`. Real power actions and physical macOS behavior remain unverified.
 
 Horune is designed to avoid per-schedule loops and hidden-window rendering, but the project does **not** call itself lightweight without native measurements. The 60-second CPU/RAM sampler and the empty, explicitly pending measurement matrix are documented.
 
 - [Testing](docs/testing.md)
 - [Performance](docs/performance.md)
-- [Dated verification report](docs/test-report-2026-09-28.md)
+- [Dated verification report](docs/test-report-2026-09-29.md)
 
 ## Roadmap
 

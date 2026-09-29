@@ -19,14 +19,14 @@ pnpm tauri build
 
 ## Current verified scope
 
-On 2026-09-28 the TypeScript typecheck passed for all six packages/apps. Twelve unit tests passed:
+On 2026-09-29 the TypeScript typecheck passed for all six packages/apps. Twenty unit tests passed:
 
 - `theme-schema`: bundled themes, strict unknown-field rejection, opacity/animation bounds, Studio document, unsafe/excess layer rejection (5).
 - `theme-renderer`: deadline and bilingual word-clock formatting (2).
 - `theme-studio`: validated JSON round-trip, unknown executable field and size rejection (2).
-- `desktop`: deadline countdown, pause/resume, snooze/clock-jump behavior (3).
+- `desktop`: deadline countdown, pause/resume, snooze/clock-jump behavior; terminal overlay presentation/auto-hide; native-request wording; validated custom themes; malformed and unsupported-version fallback (11).
 
-The production build passed for the shared packages, Next.js routes, and Vite desktop webview. Twenty-four Playwright tests passed across desktop `1440×900`, tablet `768×1024`, and mobile `390×844`, covering:
+The production build passed for the shared packages, Next.js routes, and Vite desktop webview. Twenty-seven Playwright cases completed across desktop `1440×900`, tablet `768×1024`, and mobile `390×844`, covering:
 
 - English-default redirect, bilingual landing journeys, and live theme selection;
 - English metadata/copy, account/status honesty, real CTA targets, and document language;
@@ -34,11 +34,13 @@ The production build passed for the shared packages, Next.js routes, and Vite de
 - keyboard focus visibility;
 - Studio clock-type changes, layer creation, local draft save/reload/restore;
 - scoped duplicate/delete/nudge/save/undo shortcuts and the searchable Command Palette;
-- responsive screenshots for the landing, desktop scheduler preview, and Studio.
+- responsive screenshots for the landing, desktop scheduler preview, Studio, and a transparent-background overlay browser preview.
 
-Manual browser QA additionally changed the editor to a hybrid face, enabled the date, added a layer, and confirmed the renderer updated in both web and desktop surfaces.
+Manual browser QA added a Studio layer, applied the validated custom fork, confirmed the main preview selected the same personal theme, verified no Vite error overlay or console warnings/errors, and measured computed `rgba(0, 0, 0, 0)` backgrounds for overlay `html`, `body`, and root. This is browser-preview evidence, not proof of native Windows transparency.
 
 Rust tests and platform bundles also passed in [CI run #3](https://github.com/Ericismee/horune/actions/runs/36442542223): Windows produced an NSIS artifact and macOS produced a DMG artifact.
+
+Eight Rust tests now cover the durable five-minute warning/due/simulation path, fake-adapter success/failure/post-wake classification, a wake event arriving before the adapter returns, interrupted-dispatch recovery without repeat, overdue startup confirmation, DPI-aware overlay sizing, and multi-monitor position clamping. They have not passed locally because linking stops at missing `msvcrt.lib`; CI is the compilation/execution gate for these additions.
 
 ## Native and hardware limitations
 
@@ -52,8 +54,9 @@ No physical macOS test, Linux release build, signed installer, tray-only resourc
 2. Use a short reminder or Sleep schedule.
 3. Verify the exact end time before starting.
 4. Exercise warning, pause/resume, +5, cancel, close-to-tray, and overlay controls.
-5. To test overdue recovery, stop the app while a simulated schedule is active and restart after its deadline. Confirm it shows `awaiting_confirmation` and does not run automatically.
-6. Never disable simulation in CI or an automated test.
+5. At completion, confirm the overlay shows the simulation result briefly, auto-hides only if configured, the main/tray remains alive, and the schedule remains in History.
+6. To test overdue recovery, stop the app while a simulated schedule is active and restart after its deadline. Confirm it shows `awaiting_confirmation` and does not run automatically.
+7. Never disable simulation in CI or an automated test.
 
 Real system action tests require an isolated manual checklist on each supported OS, explicit user confirmation, unsaved-work precautions, and a documented result.
 
@@ -61,4 +64,4 @@ Real system action tests require an isolated manual checklist on each supported 
 
 Committed screenshots must come from a running local build and include descriptive alt text where used. Do not substitute Figma/Canva mockups for completion evidence. The native overlay screenshot remains absent until a native artifact runs successfully.
 
-See [`test-report-2026-09-28.md`](test-report-2026-09-28.md) for the dated environment table and [`performance.md`](performance.md) for measurement status.
+See [`test-report-2026-09-29.md`](test-report-2026-09-29.md) for this change's evidence and [`performance.md`](performance.md) for measurement status.

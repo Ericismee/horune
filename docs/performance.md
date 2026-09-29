@@ -15,7 +15,7 @@ Horune is designed for low background cost, but the project does not describe it
 
 ## Actual results currently available
 
-The production build on this host completed successfully. The desktop webview main JavaScript asset is 358.58 kB raw / 108.36 kB gzip and its CSS is 28.75 kB raw / 9.67 kB gzip. Next.js statically generated `/vi`, `/en`, and both Studio routes.
+The 2026-09-29 production build on this host completed successfully. The desktop webview main JavaScript asset is 378.89 kB raw / 113.75 kB gzip and its CSS is 36.08 kB raw / 11.06 kB gzip. Next.js statically generated `/vi`, `/en`, and both Studio routes. The increase includes terminal history/results, overlay controls, persisted theme selection, and working Studio layout tools; it is a bundle measurement, not a runtime CPU/RAM claim.
 
 CPU, RAM, and GPU numbers for native main-window, overlay, and tray states are **not available**. Windows Application Control blocks generated Cargo build-script executables with OS error 4551, so no trustworthy native binary could be measured. Empty cells below are intentional; they are not estimates.
 

@@ -4,14 +4,17 @@ mod models;
 mod scheduler;
 
 use chrono::Utc;
-use models::{Capabilities, CreateScheduleInput, Schedule, Status};
+use models::{
+    Capabilities, CreateScheduleInput, DesktopSettings, Schedule, Status, UpdateDesktopSettings,
+};
 use rusqlite::Connection;
 use scheduler::AppState;
 use std::sync::atomic::Ordering;
 use tauri::{
     menu::{Menu, MenuItem},
     tray::{MouseButton, MouseButtonState, TrayIconBuilder, TrayIconEvent},
-    AppHandle, Emitter, Manager, State, WindowEvent,
+    AppHandle, Emitter, Manager, PhysicalPosition, PhysicalSize, RunEvent, State, WebviewWindow,
+    WindowEvent,
 };
 use uuid::Uuid;
 
@@ -38,7 +41,12 @@ fn active(state: &AppState) -> Result<Option<Schedule>, String> {
     db::active_schedule(&connection).map_err(|error| error.to_string())
 }
 
-fn update_active<F>(app: &AppHandle, operation: F) -> Result<Option<Schedule>, String>
+fn update_active<F>(
+    app: &AppHandle,
+    event: &str,
+    expected_id: Option<&str>,
+    operation: F,
+) -> Result<Option<Schedule>, String>
 where
     F: FnOnce(&mut Schedule) -> Result<(), String>,
 {
@@ -53,12 +61,23 @@ where
         else {
             return Ok(None);
         };
+        if expected_id.is_some_and(|id| id != schedule.id) {
+            return Err("The active schedule changed; refresh before applying this action".into());
+        }
         operation(&mut schedule)?;
         db::save_schedule(&connection, &schedule).map_err(|error| error.to_string())?;
+        db::audit(
+            &connection,
+            Some(&schedule.id),
+            event,
+            schedule.status.as_str(),
+            Utc::now().timestamp_millis(),
+        )
+        .map_err(|error| error.to_string())?;
         Some(schedule)
     };
     scheduler::wake(&state);
-    scheduler::emit_schedule(app);
+    scheduler::emit_schedule(app, updated.clone());
     Ok(updated)
 }
 
@@ -122,13 +141,25 @@ fn create_schedule(
         paused_remaining_ms: None,
         warned: false,
         message: input.message,
+        dispatch_started_at: None,
+        finished_at: None,
+        result_kind: None,
+        result_detail: None,
+        wake_observed_at: None,
     };
     {
         let connection = state
             .db
             .lock()
             .map_err(|_| "Database lock failed".to_string())?;
-        db::cancel_open_schedules(&connection).map_err(|error| error.to_string())?;
+        if let Some(open) = db::active_schedule(&connection).map_err(|error| error.to_string())? {
+            if matches!(open.status, Status::Due | Status::Dispatching) {
+                return Err(
+                    "Wait for the current system action to finish before replacing it".into(),
+                );
+            }
+        }
+        db::cancel_open_schedules(&connection, now).map_err(|error| error.to_string())?;
         db::save_schedule(&connection, &schedule).map_err(|error| error.to_string())?;
         db::audit(
             &connection,
@@ -140,13 +171,13 @@ fn create_schedule(
         .map_err(|error| error.to_string())?;
     }
     scheduler::wake(&state);
-    scheduler::emit_schedule(&app);
+    scheduler::emit_schedule(&app, Some(schedule.clone()));
     Ok(schedule)
 }
 
 #[tauri::command]
-fn pause_schedule(app: AppHandle) -> Result<Option<Schedule>, String> {
-    update_active(&app, |schedule| {
+fn pause_schedule(app: AppHandle, schedule_id: Option<String>) -> Result<Option<Schedule>, String> {
+    update_active(&app, "paused", schedule_id.as_deref(), |schedule| {
         if schedule.status != Status::Scheduled {
             return Err("Only a running schedule can be paused".into());
         }
@@ -158,8 +189,11 @@ fn pause_schedule(app: AppHandle) -> Result<Option<Schedule>, String> {
 }
 
 #[tauri::command]
-fn resume_schedule(app: AppHandle) -> Result<Option<Schedule>, String> {
-    update_active(&app, |schedule| {
+fn resume_schedule(
+    app: AppHandle,
+    schedule_id: Option<String>,
+) -> Result<Option<Schedule>, String> {
+    update_active(&app, "resumed", schedule_id.as_deref(), |schedule| {
         if schedule.status != Status::Paused {
             return Err("Only a paused schedule can resume".into());
         }
@@ -173,53 +207,69 @@ fn resume_schedule(app: AppHandle) -> Result<Option<Schedule>, String> {
 }
 
 #[tauri::command]
-fn snooze_schedule(app: AppHandle, minutes: Option<i64>) -> Result<Option<Schedule>, String> {
+fn snooze_schedule(
+    app: AppHandle,
+    minutes: Option<i64>,
+    schedule_id: Option<String>,
+) -> Result<Option<Schedule>, String> {
     let minutes = minutes.unwrap_or(5).clamp(1, 60);
-    update_active(&app, |schedule| {
+    update_active(&app, "snoozed", schedule_id.as_deref(), |schedule| {
+        if !matches!(
+            schedule.status,
+            Status::Scheduled | Status::Paused | Status::AwaitingConfirmation
+        ) {
+            return Err("This schedule can no longer be extended".into());
+        }
         schedule.scheduled_for =
             schedule.scheduled_for.max(Utc::now().timestamp_millis()) + minutes * 60_000;
         schedule.status = Status::Scheduled;
         schedule.paused_remaining_ms = None;
         schedule.warned = false;
+        schedule.finished_at = None;
+        schedule.result_kind = None;
+        schedule.result_detail = None;
         Ok(())
     })
 }
 
 #[tauri::command]
-fn cancel_schedule(app: AppHandle) -> Result<Option<Schedule>, String> {
-    update_active(&app, |schedule| {
-        schedule.status = Status::Cancelled;
-        Ok(())
-    })
-}
-
-#[tauri::command]
-fn confirm_overdue(app: AppHandle) -> Result<Option<Schedule>, String> {
-    let state = app.state::<AppState>();
-    let updated = {
-        let connection = state
-            .db
-            .lock()
-            .map_err(|_| "Database lock failed".to_string())?;
-        let Some(mut schedule) =
-            db::active_schedule(&connection).map_err(|error| error.to_string())?
-        else {
-            return Ok(None);
-        };
-        if schedule.status != Status::AwaitingConfirmation {
-            return Err("No overdue action is waiting".into());
+fn cancel_schedule(
+    app: AppHandle,
+    schedule_id: Option<String>,
+) -> Result<Option<Schedule>, String> {
+    update_active(&app, "cancelled", schedule_id.as_deref(), |schedule| {
+        if matches!(schedule.status, Status::Due | Status::Dispatching) {
+            return Err("The system action is already being dispatched".into());
         }
-        let outcome = actions::execute(schedule.action, schedule.simulation);
-        schedule.status = if outcome.is_ok() {
-            Status::Completed
-        } else {
-            Status::Failed
-        };
-        db::save_schedule(&connection, &schedule).map_err(|error| error.to_string())?;
-        Some(schedule)
-    };
-    scheduler::emit_schedule(&app);
-    Ok(updated)
+        schedule.status = Status::Cancelled;
+        schedule.finished_at = Some(Utc::now().timestamp_millis());
+        schedule.result_kind = Some("cancelled".into());
+        schedule.result_detail = Some("Cancelled by the user".into());
+        Ok(())
+    })
+}
+
+#[tauri::command]
+fn confirm_overdue(
+    app: AppHandle,
+    schedule_id: Option<String>,
+) -> Result<Option<Schedule>, String> {
+    update_active(
+        &app,
+        "overdue_confirmed",
+        schedule_id.as_deref(),
+        |schedule| {
+            if schedule.status != Status::AwaitingConfirmation {
+                return Err("No overdue action is waiting".into());
+            }
+            schedule.scheduled_for = Utc::now().timestamp_millis();
+            schedule.status = Status::Scheduled;
+            schedule.warned = true;
+            schedule.result_kind = None;
+            schedule.result_detail = None;
+            Ok(())
+        },
+    )
 }
 
 #[tauri::command]
@@ -239,6 +289,38 @@ fn set_simulation_mode(state: State<'_, AppState>, enabled: bool) -> Result<bool
 }
 
 #[tauri::command]
+fn get_desktop_settings(state: State<'_, AppState>) -> Result<DesktopSettings, String> {
+    let connection = state
+        .db
+        .lock()
+        .map_err(|_| "Database lock failed".to_string())?;
+    db::desktop_settings(&connection).map_err(|error| error.to_string())
+}
+
+#[tauri::command]
+fn update_desktop_settings(
+    app: AppHandle,
+    state: State<'_, AppState>,
+    update: UpdateDesktopSettings,
+) -> Result<DesktopSettings, String> {
+    let settings = {
+        let connection = state
+            .db
+            .lock()
+            .map_err(|_| "Database lock failed".to_string())?;
+        db::update_desktop_settings(&connection, &update).map_err(|error| error.to_string())?
+    };
+    if let Some(window) = app.get_webview_window("overlay") {
+        window
+            .set_always_on_top(settings.overlay_always_on_top)
+            .map_err(|error| error.to_string())?;
+    }
+    app.emit("settings://changed", settings.clone())
+        .map_err(|error| error.to_string())?;
+    Ok(settings)
+}
+
+#[tauri::command]
 fn show_overlay(app: AppHandle, show: bool) -> Result<(), String> {
     let window = app
         .get_webview_window("overlay")
@@ -251,30 +333,58 @@ fn show_overlay(app: AppHandle, show: bool) -> Result<(), String> {
     .map_err(|error| error.to_string())
 }
 
+fn show_main(app: &AppHandle) {
+    if let Some(window) = app.get_webview_window("main") {
+        let _ = window.unminimize();
+        let _ = window.show();
+        let _ = window.set_focus();
+    }
+}
+
+#[tauri::command]
+fn show_main_window(app: AppHandle) {
+    show_main(&app);
+}
+
 fn tray_mutation(app: &AppHandle, id: &str) {
     let result = match id {
-        "pause" => update_active(app, |schedule| {
+        "pause" => update_active(app, "tray_pause_toggle", None, |schedule| {
             if schedule.status == Status::Paused {
                 schedule.scheduled_for =
                     Utc::now().timestamp_millis() + schedule.paused_remaining_ms.unwrap_or(0);
                 schedule.paused_remaining_ms = None;
                 schedule.status = Status::Scheduled;
-            } else {
+            } else if schedule.status == Status::Scheduled {
                 schedule.paused_remaining_ms =
                     Some((schedule.scheduled_for - Utc::now().timestamp_millis()).max(0));
                 schedule.status = Status::Paused;
+            } else {
+                return Err("This schedule cannot be paused or resumed".into());
             }
             Ok(())
         }),
-        "snooze" => update_active(app, |schedule| {
+        "snooze" => update_active(app, "tray_snoozed", None, |schedule| {
+            if !matches!(
+                schedule.status,
+                Status::Scheduled | Status::Paused | Status::AwaitingConfirmation
+            ) {
+                return Err("This schedule can no longer be extended".into());
+            }
             schedule.scheduled_for =
                 schedule.scheduled_for.max(Utc::now().timestamp_millis()) + 300_000;
             schedule.status = Status::Scheduled;
+            schedule.paused_remaining_ms = None;
             schedule.warned = false;
             Ok(())
         }),
-        "cancel" => update_active(app, |schedule| {
+        "cancel" => update_active(app, "tray_cancelled", None, |schedule| {
+            if matches!(schedule.status, Status::Due | Status::Dispatching) {
+                return Err("The system action is already being dispatched".into());
+            }
             schedule.status = Status::Cancelled;
+            schedule.finished_at = Some(Utc::now().timestamp_millis());
+            schedule.result_kind = Some("cancelled".into());
+            schedule.result_detail = Some("Cancelled from the tray".into());
             Ok(())
         }),
         _ => Ok(None),
@@ -284,11 +394,124 @@ fn tray_mutation(app: &AppHandle, id: &str) {
     }
 }
 
-fn show_main(app: &AppHandle) {
-    if let Some(window) = app.get_webview_window("main") {
-        let _ = window.unminimize();
-        let _ = window.show();
-        let _ = window.set_focus();
+fn restored_overlay_size(
+    saved_width: f64,
+    saved_height: f64,
+    saved_scale: f64,
+    current_scale: f64,
+) -> (u32, u32) {
+    let scale_ratio = current_scale.max(0.5) / saved_scale.max(0.5);
+    (
+        (saved_width * scale_ratio).clamp(280.0, 1200.0) as u32,
+        (saved_height * scale_ratio).clamp(160.0, 800.0) as u32,
+    )
+}
+
+fn clamp_overlay_position(
+    saved_x: f64,
+    saved_y: f64,
+    width: u32,
+    height: u32,
+    origin: PhysicalPosition<i32>,
+    monitor_size: PhysicalSize<u32>,
+) -> (i32, i32) {
+    let max_x = origin.x + monitor_size.width.saturating_sub(width) as i32;
+    let max_y = origin.y + monitor_size.height.saturating_sub(height) as i32;
+    (
+        (saved_x as i32).clamp(origin.x, max_x.max(origin.x)),
+        (saved_y as i32).clamp(origin.y, max_y.max(origin.y)),
+    )
+}
+
+fn restore_overlay(window: &WebviewWindow, connection: &Connection) {
+    if let Ok(settings) = db::desktop_settings(connection) {
+        let _ = window.set_always_on_top(settings.overlay_always_on_top);
+    }
+    let number = |key: &str| {
+        db::setting(connection, key)
+            .ok()
+            .flatten()
+            .and_then(|value| value.parse::<f64>().ok())
+    };
+    let (Some(saved_x), Some(saved_y), Some(saved_width), Some(saved_height)) = (
+        number("overlay_x"),
+        number("overlay_y"),
+        number("overlay_width"),
+        number("overlay_height"),
+    ) else {
+        return;
+    };
+    let current_scale = window.scale_factor().unwrap_or(1.0);
+    let saved_scale = number("overlay_scale_factor").unwrap_or(current_scale);
+    let (width, height) =
+        restored_overlay_size(saved_width, saved_height, saved_scale, current_scale);
+    let monitors = window.available_monitors().unwrap_or_default();
+    let monitor = monitors
+        .iter()
+        .find(|monitor| {
+            let position = monitor.position();
+            let size = monitor.size();
+            saved_x >= position.x as f64
+                && saved_x < (position.x + size.width as i32) as f64
+                && saved_y >= position.y as f64
+                && saved_y < (position.y + size.height as i32) as f64
+        })
+        .or_else(|| monitors.first());
+    let (x, y) = if let Some(monitor) = monitor {
+        let origin = monitor.position();
+        let size = monitor.size();
+        clamp_overlay_position(saved_x, saved_y, width, height, *origin, *size)
+    } else {
+        (saved_x as i32, saved_y as i32)
+    };
+    let _ = window.set_size(PhysicalSize::new(width, height));
+    let _ = window.set_position(PhysicalPosition::new(x, y));
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn overlay_size_is_scaled_for_dpi_and_bounded() {
+        assert_eq!(restored_overlay_size(430.0, 205.0, 1.0, 1.5), (645, 307));
+        assert_eq!(restored_overlay_size(10.0, 10.0, 1.0, 1.0), (280, 160));
+        assert_eq!(restored_overlay_size(5000.0, 5000.0, 1.0, 1.0), (1200, 800));
+    }
+
+    #[test]
+    fn overlay_position_returns_to_a_visible_monitor() {
+        let origin = PhysicalPosition::new(1920, 0);
+        let size = PhysicalSize::new(1920, 1080);
+        assert_eq!(
+            clamp_overlay_position(5000.0, -200.0, 430, 205, origin, size),
+            (3410, 0)
+        );
+    }
+}
+
+fn persist_overlay_geometry(window: &WebviewWindow, event: &WindowEvent) {
+    let state = window.state::<AppState>();
+    let Ok(connection) = state.db.lock() else {
+        return;
+    };
+    match event {
+        WindowEvent::Moved(position) => {
+            let _ = db::set_setting(&connection, "overlay_x", &position.x.to_string());
+            let _ = db::set_setting(&connection, "overlay_y", &position.y.to_string());
+        }
+        WindowEvent::Resized(size) => {
+            let _ = db::set_setting(&connection, "overlay_width", &size.width.to_string());
+            let _ = db::set_setting(&connection, "overlay_height", &size.height.to_string());
+        }
+        WindowEvent::ScaleFactorChanged { scale_factor, .. } => {
+            let _ = db::set_setting(
+                &connection,
+                "overlay_scale_factor",
+                &scale_factor.to_string(),
+            );
+        }
+        _ => {}
     }
 }
 
@@ -304,11 +527,15 @@ pub fn run() {
             let simulation = db::setting(&connection, "simulation")?
                 .map(|value| value == "true")
                 .unwrap_or(true);
+            if let Some(window) = app.get_webview_window("overlay") {
+                restore_overlay(&window, &connection);
+            }
             app.manage(AppState {
                 db: std::sync::Mutex::new(connection),
                 notify: tokio::sync::Notify::new(),
                 simulation: std::sync::atomic::AtomicBool::new(simulation),
                 allow_exit: std::sync::atomic::AtomicBool::new(false),
+                pending_wake: std::sync::Mutex::new(None),
             });
 
             let open = MenuItem::with_id(app, "open", "Open Horune", true, None::<&str>)?;
@@ -350,7 +577,6 @@ pub fn run() {
                     }
                 })
                 .build(app)?;
-
             let handle = app.handle().clone();
             tauri::async_runtime::spawn(scheduler::run(handle));
             Ok(())
@@ -364,6 +590,8 @@ pub fn run() {
                         let _ = window.hide();
                     }
                 }
+            } else if window.label() == "overlay" {
+                persist_overlay_geometry(window, event);
             }
         })
         .invoke_handler(tauri::generate_handler![
@@ -377,8 +605,16 @@ pub fn run() {
             cancel_schedule,
             confirm_overdue,
             set_simulation_mode,
-            show_overlay
+            get_desktop_settings,
+            update_desktop_settings,
+            show_overlay,
+            show_main_window
         ])
-        .run(tauri::generate_context!())
-        .expect("error while running Horune");
+        .build(tauri::generate_context!())
+        .expect("error while building Horune")
+        .run(|app, event| {
+            if matches!(event, RunEvent::Resumed) {
+                scheduler::record_wake_observed(app, Utc::now().timestamp_millis());
+            }
+        });
 }

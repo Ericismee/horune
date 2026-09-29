@@ -36,23 +36,25 @@ In words: web and desktop share the editor, schema, renderer, and design system.
 
 ## Scheduler and persistence
 
-SQLite stores schedules, settings, and audit events in the Tauri app data directory. Rust owns one asynchronous scheduler task. Mutations notify that task; it sleeps until the nearest warning/deadline (bounded to re-evaluate periodically) rather than starting one interval per schedule.
+SQLite stores schedules, terminal results, overlay/theme settings, and audit events in the Tauri app data directory. Rust owns one asynchronous scheduler task. Mutations notify that task; it sleeps until the nearest warning/deadline (bounded to re-evaluate periodically) rather than starting one interval per schedule.
 
-The displayed countdown is always derived from `scheduledFor - now`. Pausing records the remaining duration, resuming creates a new deadline, and snoozing moves that deadline. On startup, a schedule overdue beyond the tolerance becomes `awaiting_confirmation`; recovery never calls the action adapter automatically.
+The durable lifecycle is `scheduled → due → dispatching → completed|request_sent|failed`. Simulation/reminders can become `completed`; a real OS process that starts becomes `request_sent`, avoiding a false claim that the power transition completed. `due` and `dispatching` are committed before the operating-system adapter runs. A restart in either intermediate state becomes `awaiting_confirmation` instead of repeating a potentially destructive action. The displayed countdown is always derived from `scheduledFor - now`; pausing records the remaining duration, resuming creates a new deadline, and snoozing moves that deadline. Any schedule already overdue at startup also requires confirmation.
+
+Scheduler events carry the exact mutated schedule and its stable ID. Terminal schedules are not returned by `get_active_schedule`, but the terminal event and history retain them for the overlay and main window. Native adapter success means the request process started, not that a power transition completed. A same-process Tauri resume can separately record `wake_observed_at`. See [scheduler and overlay lifecycle](scheduler-overlay-lifecycle.md).
 
 Simulation is persisted locally and defaults to enabled. The Windows/macOS adapters are selected at compile time. Linux deliberately exposes reminder-only capabilities in this milestone.
 
 ## Windows and surfaces
 
 - `main`: scheduler and Theme Studio.
-- `overlay`: transparent, always-on-top clock with +5, pause/resume, and cancel.
+- `overlay`: transparent resizable clock with Home, icon/clock, persisted native pin/unpin, idle control hiding, +5, pause/resume, cancel, and terminal-result states.
 - `tray`: open main, show overlay, +5, pause/resume, cancel, and explicit quit.
 
-Closing the main window hides it. The Rust scheduler remains authoritative while rendering surfaces are hidden.
+Closing the main window hides it. The Rust scheduler remains authoritative while rendering surfaces are hidden. Overlay position, physical size, DPI scale, pin state, display mode, control timeout, motion mode, and active theme are local SQLite settings. Restored bounds are clamped to an available monitor.
 
 ## Theme data path
 
-`ThemeManifestV1` is data, not an extension runtime. Studio edits the same manifest that the renderer consumes. JSON import is parsed through Zod before entering editor state. The current manifest can express approved clock/layout/palette/effect fields and bounded text/sticker/icon layers; it cannot express arbitrary code, URLs, CSS, HTML, or system actions.
+`ThemeManifestV1` is data, not an extension runtime. Studio edits the same manifest that the renderer consumes. JSON import is parsed through Zod before entering editor state. On desktop, **Apply to overlay** validates again and atomically stores the selected ID plus custom manifest; both webviews receive the same settings event. A rejected, missing, or unsupported theme leaves the safe current/fallback renderer available rather than producing a blank overlay. Built-in themes are forked before editing. The current manifest can express approved clock/layout/palette/effect fields and bounded text/sticker/icon layers; it cannot express arbitrary code, URLs, CSS, HTML, or system actions.
 
 ## Planned API boundary
 
@@ -76,6 +78,7 @@ The desktop scheduler, database, installed themes, overlay, tray, and simulation
 ## Related decisions
 
 - [Ordered implementation plan](implementation-plan.md)
+- [Scheduler and overlay lifecycle](scheduler-overlay-lifecycle.md)
 - [Theme Studio feature matrix](theme-studio-feature-matrix.md)
 - [Canvas/rendering ADR](adr/0001-theme-canvas-rendering.md)
 - [Identity provider ADR](adr/0002-identity-provider.md)

@@ -28,6 +28,8 @@ The current icon/sticker content is built into the editor. There is no external 
 
 - Canvas zoom from 60% to 140%.
 - Grid visibility and drag snapping.
+- Top toolbar for adding text/stickers and aligning the selected layer to the canvas left/center/right or top/middle/bottom; locked layers remain fixed.
+- Three canvas layout presets (standard, wide, square), direct width/height/grid-size inputs, and a lower quick-edit bar with pixel-position feedback, grid-step moves, and transform reset.
 - Undo/redo with the most recent 50 editing states.
 - Duplicate and delete through visible controls or scoped keyboard commands.
 - Pixel nudge with arrow keys (10 px with Shift), zoom shortcuts, deselect, and add-text shortcuts.
@@ -35,10 +37,11 @@ The current icon/sticker content is built into the editor. There is no external 
 - Device-local draft save and restore through versioned local-storage keys.
 - Reset to the source theme.
 - Strict JSON export and import with a 256 KiB input limit.
+- Desktop **Apply to overlay** validation and atomic persistence. Editing a bundled theme creates a `-custom` fork, so the bundled source is never overwritten. The main preview and overlay read the same SQLite-backed selection immediately and after restart.
 
 Shortcuts do not fire while the user is editing an input, select, textarea, or editable text region. Every essential command also has a visible control. See the [feature matrix](theme-studio-feature-matrix.md) for the complete current/next/later boundary.
 
-Drafts are local to an origin/application today; web-to-desktop sync is planned with accounts.
+Drafts are local to an origin/application today; web-to-desktop sync is planned with accounts. `draft` means editable local Studio state; a manifest becomes `active` only after validation and apply. Invalid or unsupported-version custom data produces an explained safe fallback. Asset-aware `missing_asset` handling remains planned because the current schema does not yet accept external assets.
 
 ## Import and export today
 

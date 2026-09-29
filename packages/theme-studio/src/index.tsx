@@ -22,6 +22,7 @@ const COPY = {
     restore: "Khôi phục",
     export: "Xuất JSON",
     import: "Nhập JSON",
+    apply: "Áp dụng vào overlay",
     reset: "Đặt lại",
     addText: "+ Văn bản",
     addSticker: "+ Sticker",
@@ -34,6 +35,7 @@ const COPY = {
     saved: "Đã lưu nháp trên thiết bị.",
     restored: "Đã khôi phục nháp.",
     imported: "Theme hợp lệ đã được nhập.",
+    applied: "Theme hợp lệ đã được áp dụng.",
     invalid: "Không thể nhập theme"
   },
   en: {
@@ -46,6 +48,7 @@ const COPY = {
     restore: "Restore",
     export: "Export JSON",
     import: "Import JSON",
+    apply: "Apply to overlay",
     reset: "Reset",
     addText: "+ Text",
     addSticker: "+ Sticker",
@@ -58,6 +61,7 @@ const COPY = {
     saved: "Draft saved on this device.",
     restored: "Draft restored.",
     imported: "Valid theme imported.",
+    applied: "Validated theme applied to the overlay.",
     invalid: "Theme import failed"
   }
 } as const;
@@ -69,9 +73,10 @@ export interface ThemeStudioProps {
   locale?: "vi" | "en";
   initialTheme?: ThemeManifestV1;
   storageKey?: string;
+  onApplyTheme?: (theme: ThemeManifestV1) => void | Promise<void>;
 }
 
-export function ThemeStudio({ locale = "vi", initialTheme, storageKey = "horune.theme-studio.v1" }: ThemeStudioProps) {
+export function ThemeStudio({ locale = "vi", initialTheme, storageKey = "horune.theme-studio.v1", onApplyTheme }: ThemeStudioProps) {
   const source = useMemo(() => createStudioTheme(initialTheme), [initialTheme]);
   const [history, setHistory] = useState<History>(() => ({ past: [], present: source, future: [] }));
   const [selectedId, setSelectedId] = useState<string | null>(history.present.studio?.layers[0]?.id ?? null);
@@ -159,6 +164,17 @@ export function ThemeStudio({ locale = "vi", initialTheme, storageKey = "horune.
     });
   };
 
+  const alignSelected = (axis: "x" | "y", position: "start" | "center" | "end") => {
+    if (!selected || selected.locked) return;
+    const coordinate = position === "start" ? 0.1 : position === "center" ? 0.5 : 0.9;
+    updateLayer(selected.id, (layer) => { layer[axis] = coordinate; });
+  };
+
+  const setCanvasSize = (width: number, height: number) => commit((draft) => {
+    draft.studio!.canvas.width = clamp(Math.round(width), 280, 960);
+    draft.studio!.canvas.height = clamp(Math.round(height), 140, 640);
+  });
+
   const startDrag = (layer: ThemeLayerV1, event: ReactPointerEvent<HTMLSpanElement>) => {
     if (layer.locked) return;
     const canvas = event.currentTarget.closest(".theme-studio__canvas");
@@ -216,6 +232,16 @@ export function ThemeStudio({ locale = "vi", initialTheme, storageKey = "horune.
       anchor.href = url; anchor.download = themeFileName(theme); anchor.click();
       URL.revokeObjectURL(url);
     } catch (error) { setMessage(`${t.invalid}: ${error instanceof Error ? error.message : "unknown error"}`); }
+  };
+
+  const applyTheme = async () => {
+    try {
+      const validated = parseThemeManifest(theme);
+      await onApplyTheme?.(validated);
+      setMessage(t.applied);
+    } catch (error) {
+      setMessage(`${t.invalid}: ${error instanceof Error ? error.message : "unknown error"}`);
+    }
   };
 
   const importTheme = async (event: ChangeEvent<HTMLInputElement>) => {
@@ -303,6 +329,18 @@ export function ThemeStudio({ locale = "vi", initialTheme, storageKey = "horune.
       {paletteOpen ? <div className="theme-studio__palette-backdrop" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget) setPaletteOpen(false); }}><section className="theme-studio__palette" role="dialog" aria-modal="true" aria-label={t.commands}><header><strong>{t.commands}</strong><button type="button" onClick={() => setPaletteOpen(false)} aria-label="Close commands">×</button></header><input ref={paletteInputRef} value={commandQuery} onChange={(event) => setCommandQuery(event.target.value)} placeholder={t.commandPlaceholder} aria-label={t.commandPlaceholder} /><div>{filteredCommands.length ? filteredCommands.map((command) => <button type="button" key={command.id} disabled={command.disabled} onClick={() => { command.run(); setPaletteOpen(false); }}><span>{command.label}</span><kbd>{command.shortcut}</kbd></button>) : <p>{t.noCommands}</p>}</div></section></div> : null}
 
       <div className="theme-studio__toolbar">
+        <div className="theme-studio__tool-group" role="group" aria-label={locale === "vi" ? "Thêm layer" : "Add layer"}>
+          <button type="button" onClick={() => addLayer("text", locale === "vi" ? "Thời gian của bạn" : "Your time")} disabled={studio.layers.length >= THEME_IMPORT_LIMITS.layers}>{t.addText}</button>
+          <button type="button" onClick={() => addLayer("sticker", STICKERS[studio.layers.length % STICKERS.length]!)} disabled={studio.layers.length >= THEME_IMPORT_LIMITS.layers}>{t.addSticker}</button>
+        </div>
+        <div className="theme-studio__tool-group" role="group" aria-label={locale === "vi" ? "Căn layer đã chọn" : "Align selected layer"}>
+          <button type="button" title="Align left" aria-label="Align left" disabled={!selected || selected.locked} onClick={() => alignSelected("x", "start")}>⇤</button>
+          <button type="button" title="Align horizontal center" aria-label="Align horizontal center" disabled={!selected || selected.locked} onClick={() => alignSelected("x", "center")}>↔</button>
+          <button type="button" title="Align right" aria-label="Align right" disabled={!selected || selected.locked} onClick={() => alignSelected("x", "end")}>⇥</button>
+          <button type="button" title="Align top" aria-label="Align top" disabled={!selected || selected.locked} onClick={() => alignSelected("y", "start")}>⇡</button>
+          <button type="button" title="Align vertical center" aria-label="Align vertical center" disabled={!selected || selected.locked} onClick={() => alignSelected("y", "center")}>↕</button>
+          <button type="button" title="Align bottom" aria-label="Align bottom" disabled={!selected || selected.locked} onClick={() => alignSelected("y", "end")}>⇣</button>
+        </div>
         <label>Zoom <input aria-label="Canvas zoom" type="range" min="60" max="140" step="10" value={zoom} onChange={(event) => setZoom(Number(event.target.value))} /> {zoom}%</label>
         <label><input type="checkbox" checked={grid} onChange={(event) => setGrid(event.target.checked)} /> Grid</label>
         <label><input type="checkbox" checked={snap} onChange={(event) => setSnap(event.target.checked)} /> Snap</label>
@@ -312,7 +350,6 @@ export function ThemeStudio({ locale = "vi", initialTheme, storageKey = "horune.
       <div className="theme-studio__layout">
         <aside className="theme-studio__panel">
           <div className="theme-studio__panel-title"><strong>{t.layers}</strong><span>{studio.layers.length}/{THEME_IMPORT_LIMITS.layers}</span></div>
-          <div className="theme-studio__add"><button type="button" onClick={() => addLayer("text", locale === "vi" ? "Thời gian của bạn" : "Your time")}>{t.addText}</button><button type="button" onClick={() => addLayer("sticker", STICKERS[studio.layers.length % STICKERS.length]!)}>{t.addSticker}</button></div>
           <div className="theme-studio__layers">
             {[...studio.layers].sort((a, b) => b.zIndex - a.zIndex).map((layer) => (
               <div className={selectedId === layer.id ? "is-selected" : ""} key={layer.id}>
@@ -325,14 +362,24 @@ export function ThemeStudio({ locale = "vi", initialTheme, storageKey = "horune.
         </aside>
 
         <div className="theme-studio__stage" onPointerMove={dragLayer} onPointerUp={finishDrag} onPointerCancel={finishDrag}>
+          <div className="theme-studio__stage-tools" role="group" aria-label={locale === "vi" ? "Bố cục canvas" : "Canvas layout"}>
+            <span>{locale === "vi" ? "Bố cục" : "Layout"}</span>
+            <button type="button" onClick={() => setCanvasSize(560, 260)} aria-pressed={studio.canvas.width === 560 && studio.canvas.height === 260}>Standard</button>
+            <button type="button" onClick={() => setCanvasSize(720, 240)} aria-pressed={studio.canvas.width === 720 && studio.canvas.height === 240}>Wide</button>
+            <button type="button" onClick={() => setCanvasSize(400, 400)} aria-pressed={studio.canvas.width === 400 && studio.canvas.height === 400}>Square</button>
+          </div>
           <div className={`theme-studio__canvas ${grid ? "has-grid" : ""}`} style={{ width: `${zoom}%`, aspectRatio: `${studio.canvas.width} / ${studio.canvas.height}`, "--studio-grid": `${studio.canvas.gridSize}px` } as CSSProperties}>
             <ClockThemeRenderer theme={theme} remainingMs={30 * 60_000} action="sleep" locale={locale} motionMode={motion} selectedLayerId={selectedId} onLayerPointerDown={startDrag} />
           </div>
           <small>{studio.canvas.width} × {studio.canvas.height}px · {t.currentSupport}</small>
+          <div className="theme-studio__stage-bottom" role="group" aria-label={locale === "vi" ? "Chỉnh nhanh layer" : "Quick layer edit"}>
+            {selected ? <><strong>{selected.content}</strong><span>X {Math.round(selected.x * studio.canvas.width)} px · Y {Math.round(selected.y * studio.canvas.height)} px</span><button type="button" disabled={selected.locked} onClick={() => nudgeSelected(-studio.canvas.gridSize, 0)} aria-label="Move layer left">←</button><button type="button" disabled={selected.locked} onClick={() => nudgeSelected(0, -studio.canvas.gridSize)} aria-label="Move layer up">↑</button><button type="button" disabled={selected.locked} onClick={() => nudgeSelected(0, studio.canvas.gridSize)} aria-label="Move layer down">↓</button><button type="button" disabled={selected.locked} onClick={() => nudgeSelected(studio.canvas.gridSize, 0)} aria-label="Move layer right">→</button><button type="button" disabled={selected.locked} onClick={() => updateLayer(selected.id, (layer) => { layer.scale = 1; layer.rotation = 0; })}>Reset transform</button></> : <span>{locale === "vi" ? "Chọn layer để chỉnh nhanh vị trí." : "Select a layer to adjust its position."}</span>}
+          </div>
         </div>
 
         <aside className="theme-studio__panel properties">
           <strong>{t.properties}</strong>
+          <fieldset><legend>Canvas</legend><label>Width (px)<input type="number" min="280" max="960" value={studio.canvas.width} onChange={(event) => setCanvasSize(Number(event.target.value), studio.canvas.height)} /></label><label>Height (px)<input type="number" min="140" max="640" value={studio.canvas.height} onChange={(event) => setCanvasSize(studio.canvas.width, Number(event.target.value))} /></label><label>Grid size<select value={studio.canvas.gridSize} onChange={(event) => commit((draft) => { draft.studio!.canvas.gridSize = Number(event.target.value) as typeof studio.canvas.gridSize; })}>{[4, 8, 12, 16, 24].map((size) => <option value={size} key={size}>{size} px</option>)}</select></label></fieldset>
           <label>{t.clock}<select value={studio.clock.type} onChange={(event) => commit((draft) => { draft.studio!.clock.type = event.target.value as typeof studio.clock.type; })}><option value="digital">Digital</option><option value="analog">Analog</option><option value="flip">Flip</option><option value="word">Word</option><option value="hybrid">Hybrid</option></select></label>
           <div className="theme-studio__checks"><label><input type="checkbox" checked={studio.clock.showSeconds} onChange={(event) => commit((draft) => { draft.studio!.clock.showSeconds = event.target.checked; })} /> Seconds</label><label><input type="checkbox" checked={studio.clock.showDate} onChange={(event) => commit((draft) => { draft.studio!.clock.showDate = event.target.checked; })} /> Date</label><label><input type="checkbox" checked={studio.clock.showAction} onChange={(event) => commit((draft) => { draft.studio!.clock.showAction = event.target.checked; })} /> Action</label></div>
           <div className="theme-studio__color-row"><label>Background<input type="color" value={theme.palette.background} onChange={(event) => commit((draft) => { draft.palette.background = event.target.value; })} /></label><label>Gradient<input type="color" value={studio.appearance.backgroundEnd} onChange={(event) => commit((draft) => { draft.studio!.appearance.backgroundEnd = event.target.value; })} /></label><label>Accent<input type="color" value={theme.palette.accent} onChange={(event) => commit((draft) => { draft.palette.accent = event.target.value; })} /></label></div>
@@ -344,7 +391,7 @@ export function ThemeStudio({ locale = "vi", initialTheme, storageKey = "horune.
       </div>
 
       <footer className="theme-studio__footer">
-        <div><button type="button" onClick={saveDraft}>{t.save}</button><button type="button" onClick={restoreDraft}>{t.restore}</button><button type="button" onClick={exportTheme}>{t.export}</button><label className="theme-studio__import">{t.import}<input type="file" accept="application/json,.json" onChange={importTheme} /></label><button type="button" onClick={() => { setHistory({ past: [history.present], present: source, future: [] }); setSelectedId(null); setMessage(""); }}>{t.reset}</button></div>
+        <div>{onApplyTheme ? <button type="button" className="primary" onClick={applyTheme}>{t.apply}</button> : null}<button type="button" onClick={saveDraft}>{t.save}</button><button type="button" onClick={restoreDraft}>{t.restore}</button><button type="button" onClick={exportTheme}>{t.export}</button><label className="theme-studio__import">{t.import}<input type="file" accept="application/json,.json" onChange={importTheme} /></label><button type="button" onClick={() => { setHistory({ past: [history.present], present: source, future: [] }); setSelectedId(null); setMessage(""); }}>{t.reset}</button></div>
         <output aria-live="polite">{message}</output>
       </footer>
     </section>
