@@ -38,13 +38,13 @@ The production build passed for the shared packages, Next.js routes, and Vite de
 
 Manual browser QA added a Studio layer, applied the validated custom fork, confirmed the main preview selected the same personal theme, verified no Vite error overlay or console warnings/errors, and measured computed `rgba(0, 0, 0, 0)` backgrounds for overlay `html`, `body`, and root. This is browser-preview evidence, not proof of native Windows transparency.
 
-Rust tests and platform bundles also passed in [CI run #3](https://github.com/Ericismee/horune/actions/runs/36442542223): Windows produced an NSIS artifact and macOS produced a DMG artifact.
+Rust tests and platform bundles passed in [CI run #8](https://github.com/Ericismee/horune/actions/runs/36525429869): Windows produced an unsigned NSIS artifact and macOS produced an unsigned ARM64 DMG artifact.
 
-Eight Rust tests now cover the durable five-minute warning/due/simulation path, fake-adapter success/failure/post-wake classification, a wake event arriving before the adapter returns, interrupted-dispatch recovery without repeat, overdue startup confirmation, DPI-aware overlay sizing, and multi-monitor position clamping. They have not passed locally because linking stops at missing `msvcrt.lib`; CI is the compilation/execution gate for these additions.
+Eight Rust tests cover the durable five-minute warning/due/simulation path, fake-adapter success/failure/post-wake classification, a wake event arriving before the adapter returns, interrupted-dispatch recovery without repeat, overdue startup confirmation, DPI-aware overlay sizing, and multi-monitor position clamping. They passed on both native CI runners; they cannot run locally because linking stops at missing `msvcrt.lib`.
 
 ## Native and hardware limitations
 
-Rust source was formatted, but local native verification is not currently complete. An earlier run was blocked by Windows Application Control (OS error 4551); the latest Visual Studio Developer Prompt reaches the MSVC linker but fails with `LNK1104: cannot open file 'msvcrt.lib'`, indicating the local Windows SDK/library installation is incomplete or not discoverable. No security-control bypass was attempted. The equivalent Rust tests and bundle steps succeeded in CI; that result validates compilation and packaging, not physical power-management behavior.
+Rust source was formatted, but local native verification is not currently complete. An earlier run was blocked by Windows Application Control (OS error 4551); the latest Visual Studio Developer Prompt reaches the MSVC linker but fails with `LNK1104: cannot open file 'msvcrt.lib'`, indicating the local Windows SDK/library installation is incomplete or not discoverable. No security-control bypass was attempted. Rust tests and bundle steps succeeded in CI #8; that result validates compilation and packaging, not physical power-management behavior.
 
 No physical macOS test, Linux release build, signed installer, tray-only resource measurement, or real Sleep/shutdown/lock action has been claimed.
 

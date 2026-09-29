@@ -106,7 +106,7 @@ pnpm dev:web
 pnpm dev:desktop
 ```
 
-Mở `http://localhost:3000` (mặc định chuyển đến English), `http://localhost:3000/vi` hoặc route `/studio` tương ứng. Dự án chủ ý không đặt link installer cho tới khi có artifact phát hành thật.
+Mở `http://localhost:3000` (mặc định chuyển đến English), `http://localhost:3000/vi` hoặc route `/studio` tương ứng. Chưa có bản phát hành công khai. Để thử nghiệm, [CI run #8](https://github.com/Ericismee/horune/actions/runs/36525429869) có artifact chưa ký `horune-windows` (`nsis/Horune_0.1.0_x64-setup.exe`) và `horune-macos` (`dmg/Horune_0.1.0_aarch64.dmg`). GitHub có thể yêu cầu đăng nhập để tải artifact của workflow.
 
 <details>
 <summary>Lệnh build và kiểm thử</summary>
@@ -122,7 +122,7 @@ pnpm tauri build --bundles nsis  # Windows
 pnpm tauri build --bundles dmg   # macOS
 ```
 
-Artifact native nằm trong `apps/desktop/src-tauri/target/release/bundle/`. Chỉ build bundle tương ứng với hệ điều hành hiện tại và cài các prerequisite trong [development.md](docs/development.md).
+Artifact native nằm trong `apps/desktop/src-tauri/target/release/bundle/`; file cài Windows nằm ở `nsis/` và ảnh đĩa macOS ở `dmg/`. Chỉ build bundle tương ứng với hệ điều hành hiện tại và cài các prerequisite trong [development.md](docs/development.md).
 </details>
 
 ### Cấu trúc monorepo
@@ -175,7 +175,7 @@ Trong tương lai, tài khoản, cộng đồng, kiểm duyệt, đơn hàng và
 
 ## Kiểm thử và hiệu năng
 
-Baseline cục bộ hiện tại gồm typecheck 6 workspace TypeScript, 20 unit test, production build và 27 ca Playwright ở `1440×900`, `768×1024`, `390×844`. Browser QA cũng xác nhận `html`, `body`, root của route overlay đều trong suốt, chuỗi lỗi thô cũ không còn và theme fork hợp lệ đi tới preview overlay. Rust test cùng bundle NSIS/DMG chưa ký trước đây đã qua trong [CI run #3](https://github.com/Ericismee/horune/actions/runs/36442542223); các test vòng đời Rust mới chờ CI vì MSVC cục bộ không tìm thấy `msvcrt.lib`. Hành động nguồn điện thật và macOS vật lý vẫn chưa xác minh.
+Baseline đã xác minh gồm typecheck 6 workspace TypeScript, 20 unit test, production build và 27 ca Playwright ở `1440×900`, `768×1024`, `390×844`. Browser QA cũng xác nhận `html`, `body`, root của route overlay đều trong suốt, chuỗi lỗi thô cũ không còn và theme fork hợp lệ đi tới preview overlay. Tám Rust test và bundle NSIS/DMG chưa ký đã qua trong [CI run #8](https://github.com/Ericismee/horune/actions/runs/36525429869). Rust cục bộ vẫn không link được vì môi trường MSVC này thiếu `msvcrt.lib`. Hành động nguồn điện thật và macOS vật lý vẫn chưa xác minh.
 
 Horune được thiết kế để tránh vòng lặp riêng cho từng lịch và không render khi cửa sổ ẩn, nhưng dự án **không** tự gọi mình “nhẹ” khi chưa có số đo native. Quy trình đo CPU/RAM 60 giây và bảng kết quả đang chờ được công bố minh bạch.
 

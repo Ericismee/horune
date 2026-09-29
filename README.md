@@ -106,7 +106,7 @@ pnpm dev:web
 pnpm dev:desktop
 ```
 
-Open `http://localhost:3000` (redirects to English), `http://localhost:3000/vi`, or the corresponding `/studio` route. There is intentionally no installer link until a real release artifact exists.
+Open `http://localhost:3000` (redirects to English), `http://localhost:3000/vi`, or the corresponding `/studio` route. There is no public release download yet. For testing, [CI run #8](https://github.com/Ericismee/horune/actions/runs/36525429869) contains the unsigned `horune-windows` artifact (`nsis/Horune_0.1.0_x64-setup.exe`) and `horune-macos` artifact (`dmg/Horune_0.1.0_aarch64.dmg`). GitHub may require sign-in to download workflow artifacts.
 
 <details>
 <summary>Build and test commands</summary>
@@ -122,7 +122,7 @@ pnpm tauri build --bundles nsis  # Windows
 pnpm tauri build --bundles dmg   # macOS
 ```
 
-Native artifacts are written under `apps/desktop/src-tauri/target/release/bundle/`. Build only the bundle for the current operating system and install the native prerequisites listed in [development.md](docs/development.md).
+Native artifacts are written under `apps/desktop/src-tauri/target/release/bundle/`; the Windows installer is under `nsis/` and the macOS disk image under `dmg/`. Build only the bundle for the current operating system and install the native prerequisites listed in [development.md](docs/development.md).
 </details>
 
 ### Monorepo map
@@ -175,7 +175,7 @@ Future accounts, community data, moderation, orders, and ownership will live beh
 
 ## Testing and performance
 
-The current local baseline is six TypeScript workspace typechecks, 20 unit tests, a production build, and 27 Playwright cases across `1440×900`, `768×1024`, and `390×844`. Browser QA also verified that `html`, `body`, and root are transparent on the overlay route, the former raw error text is absent, and a validated Studio fork reaches the overlay preview. Earlier Rust tests plus unsigned NSIS and DMG bundles passed on Windows/macOS in [CI run #3](https://github.com/Ericismee/horune/actions/runs/36442542223); the new Rust lifecycle tests await CI because this local MSVC environment cannot locate `msvcrt.lib`. Real power actions and physical macOS behavior remain unverified.
+The verified baseline is six TypeScript workspace typechecks, 20 unit tests, a production build, and 27 Playwright cases across `1440×900`, `768×1024`, and `390×844`. Browser QA also verified that `html`, `body`, and root are transparent on the overlay route, the former raw error text is absent, and a validated Studio fork reaches the overlay preview. The eight Rust tests and unsigned Windows NSIS/macOS DMG bundles passed in [CI run #8](https://github.com/Ericismee/horune/actions/runs/36525429869). Local Rust linking still fails because this MSVC environment cannot locate `msvcrt.lib`. Real power actions and physical macOS behavior remain unverified.
 
 Horune is designed to avoid per-schedule loops and hidden-window rendering, but the project does **not** call itself lightweight without native measurements. The 60-second CPU/RAM sampler and the empty, explicitly pending measurement matrix are documented.
 

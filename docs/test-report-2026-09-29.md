@@ -24,10 +24,10 @@ Theme selection was independent React state in main and overlay, matching the sc
 | `pnpm typecheck` | Pass | Six TypeScript apps/packages |
 | `pnpm test` | Pass | 20 unit tests: schema 5, renderer 2, Studio 2, desktop 11 |
 | `pnpm build` | Pass | Next.js static routes and Vite desktop bundle |
-| `pnpm test:e2e` | Pass in CI | 27/27 cases across desktop/tablet/mobile in [CI run #7](https://github.com/Ericismee/horune/actions/runs/36524962365); locally all cases reported OK but the process stayed open after the last case |
+| `pnpm test:e2e` | Pass in CI | 27/27 cases across desktop/tablet/mobile in [CI run #8](https://github.com/Ericismee/horune/actions/runs/36525429869); locally all cases reported OK but the process stayed open after the last case |
 | `cargo fmt --check` | Pass | Rust sources formatted |
-| `cargo test --no-run` | Blocked by host | MSVC linker stops on missing `msvcrt.lib` before project code compiles |
-| Native Tauri/NSIS build | Not run successfully | Same Windows SDK/Universal CRT blocker |
+| `cargo test` | Pass in CI | Eight tests on Windows and macOS in run #8; local MSVC linker stops on missing `msvcrt.lib` before project code compiles |
+| Native Tauri bundles | Pass in CI | Unsigned Windows NSIS and macOS ARM64 DMG artifacts in run #8; no local native build |
 | Real Windows power action | Not run | Requires a separate manual hardware checklist and unsaved-work precautions |
 | macOS hardware | Not available | Source/CI only; no physical Mac verification |
 
@@ -66,7 +66,7 @@ Rust tests in source use an in-memory SQLite database and fake OS adapter for:
 - overdue startup confirmation even inside the normal live tolerance;
 - DPI scaling limits and returning saved overlay bounds to a visible monitor.
 
-The Rust cases require CI or a repaired local Windows SDK before they can be marked passing for this commit.
+The Rust cases passed in CI #8. A repaired local Windows SDK is still required for hands-on native UI and power-management testing on this machine.
 
 ## Native acceptance still required
 
