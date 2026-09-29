@@ -24,7 +24,7 @@ Theme selection was independent React state in main and overlay, matching the sc
 | `pnpm typecheck` | Pass | Six TypeScript apps/packages |
 | `pnpm test` | Pass | 20 unit tests: schema 5, renderer 2, Studio 2, desktop 11 |
 | `pnpm build` | Pass | Next.js static routes and Vite desktop bundle |
-| `pnpm test:e2e` | Cases completed | 27/27 cases reported OK across desktop/tablet/mobile; the runner remained open after reporting the last case |
+| `pnpm test:e2e` | Pass in CI | 27/27 cases across desktop/tablet/mobile in [CI run #7](https://github.com/Ericismee/horune/actions/runs/36524962365); locally all cases reported OK but the process stayed open after the last case |
 | `cargo fmt --check` | Pass | Rust sources formatted |
 | `cargo test --no-run` | Blocked by host | MSVC linker stops on missing `msvcrt.lib` before project code compiles |
 | Native Tauri/NSIS build | Not run successfully | Same Windows SDK/Universal CRT blocker |

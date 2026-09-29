@@ -243,12 +243,13 @@ pub async fn run(app: AppHandle) {
         let now = Utc::now().timestamp_millis();
         let step = {
             let state = app.state::<AppState>();
-            match state.db.lock() {
+            let outcome = match state.db.lock() {
                 Ok(connection) => {
                     advance(&connection, now).unwrap_or(SchedulerStep::Wait(Duration::from_secs(1)))
                 }
                 Err(_) => SchedulerStep::Wait(Duration::from_secs(1)),
-            }
+            };
+            outcome
         };
 
         let wait = match step {
@@ -274,7 +275,7 @@ pub async fn run(app: AppHandle) {
                 let outcome = perform_dispatch(&dispatching, &adapter);
                 let finalized = {
                     let state = app.state::<AppState>();
-                    match state.db.lock() {
+                    let outcome = match state.db.lock() {
                         Ok(connection) => finalize_dispatch(
                             &connection,
                             &dispatching.id,
@@ -283,7 +284,8 @@ pub async fn run(app: AppHandle) {
                         )
                         .ok(),
                         Err(_) => None,
-                    }
+                    };
+                    outcome
                 };
                 if let Some((schedule, result)) = finalized {
                     if !result.ok {

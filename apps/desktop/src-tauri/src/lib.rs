@@ -14,7 +14,7 @@ use tauri::{
     menu::{Menu, MenuItem},
     tray::{MouseButton, MouseButtonState, TrayIconBuilder, TrayIconEvent},
     AppHandle, Emitter, Manager, PhysicalPosition, PhysicalSize, RunEvent, State, WebviewWindow,
-    WindowEvent,
+    Window, WindowEvent,
 };
 use uuid::Uuid;
 
@@ -490,7 +490,7 @@ mod tests {
     }
 }
 
-fn persist_overlay_geometry(window: &WebviewWindow, event: &WindowEvent) {
+fn persist_overlay_geometry(window: &Window, event: &WindowEvent) {
     let state = window.state::<AppState>();
     let Ok(connection) = state.db.lock() else {
         return;
